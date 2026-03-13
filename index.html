@@ -15,29 +15,31 @@
             </div>
 
             <div class="avatar-selection">
-                <p>Choose Your Hero:</p>
+                <p>Choose Your Superhero:</p>
                 <div class="avatar-grid">
-                    <div class="avatar-option selected" data-avatar="cool-kid" onclick="selectAvatar('cool-kid')">
-                        <div class="avatar-preview cool-kid"></div>
-                        <span>Cool Kid</span>
+                    <div class="avatar-option selected" data-avatar="super-red" onclick="selectAvatar('super-red')">
+                        <canvas id="preview-super-red" class="avatar-canvas" width="80" height="80"></canvas>
+                        <span>Super Red</span>
                     </div>
-                    <div class="avatar-option" data-avatar="space-scout" onclick="selectAvatar('space-scout')">
-                        <div class="avatar-preview space-scout"></div>
-                        <span>Space Scout</span>
+                    <div class="avatar-option" data-avatar="cosmo-blue" onclick="selectAvatar('cosmo-blue')">
+                        <canvas id="preview-cosmo-blue" class="avatar-canvas" width="80" height="80"></canvas>
+                        <span>Cosmo Blue</span>
                     </div>
-                    <div class="avatar-option" data-avatar="deep-diver" onclick="selectAvatar('deep-diver')">
-                        <div class="avatar-preview deep-diver"></div>
-                        <span>Deep Diver</span>
+                    <div class="avatar-option" data-avatar="aqua-green" onclick="selectAvatar('aqua-green')">
+                        <canvas id="preview-aqua-green" class="avatar-canvas" width="80" height="80"></canvas>
+                        <span>Aqua Green</span>
                     </div>
                 </div>
             </div>
 
+            <button class="btn-play-large" onclick="startGameWithDefault()">PLAY!</button>
+
             <div class="theme-selection">
-                <button class="btn-theme sky" onclick="startGame('sky')">Sky Adventure</button>
-                <button class="btn-theme underwater" onclick="startGame('underwater')">Deep Sea</button>
-                <button class="btn-theme desert" onclick="startGame('desert')">Desert Quest</button>
+                <p>Theme:</p>
+                <button class="btn-theme-small sky" onclick="setTheme('sky')">Sky</button>
+                <button class="btn-theme-small underwater active" id="btn-underwater" onclick="setTheme('underwater')">Sea</button>
+                <button class="btn-theme-small desert" onclick="setTheme('desert')">Desert</button>
             </div>
-            <p class="age-hint">Target: 7-10 years old</p>
         </div>
 
         <div id="pause-screen" class="overlay hidden">

@@ -6,7 +6,8 @@ let currentTheme = 'sky';
 let level = 1;
 let score = 0;
 let bullets = 3; // Now represents Lives
-let selectedAvatar = 'cool-kid';
+let selectedAvatar = 'super-red';
+let selectedTheme = 'underwater';
 let playerName = 'Player';
 let totalCorrect = 0;
 let currentStreak = 0;
@@ -164,6 +165,7 @@ class Projectile {
             this.reached = true;
             createRichExplosion(this.x, this.y);
             bullets--;
+            if (player) player.hurtTime = 500;
             updateUI();
             if (bullets <= 0) {
                 gameOver();
@@ -210,72 +212,102 @@ class Player {
         this.x = canvas.width / 2;
         this.y = canvas.height - 50 - 40;
         this.avatar = selectedAvatar;
+        this.hurtTime = 0;
+    }
+
+    update(dt) {
+        if (this.hurtTime > 0) this.hurtTime -= dt;
     }
 
     draw() {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-
         const time = Date.now() / 200;
-        const bounce = Math.sin(time) * 3;
-
-        // Base color based on avatar
-        let bodyColor = '#ff9f43';
-        if (this.avatar === 'space-scout') bodyColor = '#54a0ff';
-        if (this.avatar === 'deep-diver') bodyColor = '#1dd1a1';
-
-        // Animated Hair (Flying)
-        ctx.fillStyle = '#2d3436';
-        if (this.avatar === 'space-scout') ctx.fillStyle = '#dfe4ea';
-        for(let i=0; i<3; i++) {
-            const hairOffset = Math.sin(time + i) * 5;
-            ctx.beginPath();
-            ctx.ellipse(-15 + i*15, -55 + hairOffset, 10, 15, 0, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        // Body
-        ctx.fillStyle = bodyColor;
-        ctx.beginPath();
-        ctx.roundRect(-20, -30 + bounce, 40, 50, 10);
-        ctx.fill();
-
-        // Head
-        ctx.fillStyle = '#ffdbac';
-        ctx.beginPath();
-        ctx.arc(0, -45 + bounce, 18, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Shining Glasses
-        const shine = Math.abs(Math.sin(time)) * 0.5 + 0.5;
-        ctx.fillStyle = `rgba(45, 52, 54, 1)`;
-        ctx.beginPath();
-        ctx.roundRect(-15, -52 + bounce, 30, 8, 4);
-        ctx.fill();
-
-        ctx.strokeStyle = `rgba(255, 255, 255, ${shine})`;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(-10, -50 + bounce);
-        ctx.lineTo(-2, -50 + bounce);
-        ctx.stroke();
-
-        // Eyes
-        ctx.fillStyle = '#000';
-        ctx.beginPath();
-        ctx.arc(-6, -45 + bounce, 2, 0, Math.PI * 2);
-        ctx.arc(6, -45 + bounce, 2, 0, Math.PI * 2);
-        ctx.fill();
-
-        if (this.avatar === 'deep-diver') {
-            ctx.fillStyle = 'rgba(0, 168, 255, 0.4)';
-            ctx.beginPath();
-            ctx.arc(0, -45 + bounce, 22, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        ctx.restore();
+        const hurt = this.hurtTime > 0;
+        drawAvatar(ctx, this.x, this.y, this.avatar, time, hurt);
     }
+}
+
+function drawAvatar(context, x, y, type, time, hurt) {
+    context.save();
+    context.translate(x, y);
+
+    if (hurt) {
+        context.translate(Math.sin(Date.now() * 0.1) * 5, 0);
+    }
+
+    const bounce = Math.sin(time) * 3;
+
+    // Superhero Cape
+    let capeColor = '#ff4757';
+    if (type === 'cosmo-blue') capeColor = '#341f97';
+    if (type === 'aqua-green') capeColor = '#01a3a4';
+
+    context.fillStyle = capeColor;
+    context.beginPath();
+    const capeWobble = Math.sin(time * 0.5) * 10;
+    context.moveTo(-20, -20 + bounce);
+    context.lineTo(-40 - capeWobble, 30 + bounce);
+    context.lineTo(40 + capeWobble, 30 + bounce);
+    context.lineTo(20, -20 + bounce);
+    context.closePath();
+    context.fill();
+
+    // Body
+    let bodyColor = '#ee5253';
+    if (type === 'cosmo-blue') bodyColor = '#54a0ff';
+    if (type === 'aqua-green') bodyColor = '#1dd1a1';
+
+    context.fillStyle = bodyColor;
+    context.beginPath();
+    context.roundRect(-20, -30 + bounce, 40, 50, 10);
+    context.fill();
+
+    // Emblem
+    context.fillStyle = '#f1c40f';
+    context.beginPath();
+    context.arc(0, -10 + bounce, 8, 0, Math.PI * 2);
+    context.fill();
+
+    // Head
+    context.fillStyle = '#ffdbac';
+    context.beginPath();
+    context.arc(0, -45 + bounce, 18, 0, Math.PI * 2);
+    context.fill();
+
+    if (hurt) {
+        // Red overlay when hurt
+        context.fillStyle = 'rgba(255, 0, 0, 0.3)';
+        context.beginPath();
+        context.arc(0, -45 + bounce, 18, 0, Math.PI * 2);
+        context.fill();
+
+        // Dizzy Eyes
+        context.strokeStyle = '#000';
+        context.lineWidth = 2;
+        for (let eyeX of [-6, 6]) {
+            context.beginPath();
+            context.moveTo(eyeX - 3, -48 + bounce);
+            context.lineTo(eyeX + 3, -42 + bounce);
+            context.moveTo(eyeX + 3, -48 + bounce);
+            context.lineTo(eyeX - 3, -42 + bounce);
+            context.stroke();
+        }
+    } else {
+        // Superhero Mask
+        context.fillStyle = capeColor;
+        context.beginPath();
+        context.roundRect(-18, -52 + bounce, 36, 12, 5);
+        context.fill();
+
+        // Shining White Eyes in mask
+        const shine = Math.abs(Math.sin(time)) * 0.5 + 0.5;
+        context.fillStyle = `rgba(255, 255, 255, ${shine})`;
+        context.beginPath();
+        context.arc(-7, -46 + bounce, 3, 0, Math.PI * 2);
+        context.arc(7, -46 + bounce, 3, 0, Math.PI * 2);
+        context.fill();
+    }
+
+    context.restore();
 }
 
 class Saucer {
@@ -383,6 +415,12 @@ function init() {
     ctx = canvas.getContext('2d');
     resize();
     window.addEventListener('resize', resize);
+
+    // Default theme
+    setTheme('underwater');
+
+    // Start home screen preview loops
+    requestAnimationFrame(previewLoop);
 
     canvas.addEventListener('mousedown', (e) => {
         if (gameState !== 'PLAYING') return;
@@ -582,6 +620,16 @@ function resize() {
     }
 }
 
+function setTheme(theme) {
+    selectedTheme = theme;
+    document.querySelectorAll('.btn-theme-small').forEach(btn => btn.classList.remove('active'));
+    if (theme === 'underwater') document.getElementById('btn-underwater').classList.add('active');
+    else {
+        // Find by class if ID not specific enough
+        document.querySelector(`.btn-theme-small.${theme}`).classList.add('active');
+    }
+}
+
 function selectAvatar(avatar) {
     selectedAvatar = avatar;
     const options = document.querySelectorAll('.avatar-option');
@@ -591,6 +639,28 @@ function selectAvatar(avatar) {
             opt.classList.add('selected');
         }
     });
+}
+
+function previewLoop() {
+    if (gameState !== 'START') return;
+
+    const avatars = ['super-red', 'cosmo-blue', 'aqua-green'];
+    const time = Date.now() / 200;
+
+    avatars.forEach(id => {
+        const can = document.getElementById(`preview-${id}`);
+        if (can) {
+            const pctx = can.getContext('2d');
+            pctx.clearRect(0, 0, can.width, can.height);
+            drawAvatar(pctx, can.width / 2, can.height - 20, id, time, false);
+        }
+    });
+
+    requestAnimationFrame(previewLoop);
+}
+
+function startGameWithDefault() {
+    startGame(selectedTheme);
 }
 
 function startGame(theme) {
@@ -694,6 +764,7 @@ function gameLoop(timestamp) {
 
 function update(dt) {
     backgrounds.forEach(bg => bg.update(dt));
+    if (player) player.update(dt);
     saucers.forEach(saucer => saucer.update(dt));
     for (let i = projectiles.length - 1; i >= 0; i--) {
         projectiles[i].update(dt);
