@@ -9,39 +9,49 @@
 <body>
     <div id="game-container">
         <div id="start-screen" class="overlay">
-            <h1>Math Shooter</h1>
-            <p>Target: 7-10 years old</p>
-            <div class="theme-selection">
-                <button onclick="startGame('sky')">Sky Theme</button>
-                <button onclick="startGame('underwater')">Underwater Theme</button>
-                <button onclick="startGame('desert')">Desert Theme</button>
+            <h1 class="bounce">Math Shooter!</h1>
+            <div class="input-group">
+                <input type="text" id="player-name" placeholder="Enter Your Name" maxlength="12">
             </div>
+            <div class="theme-selection">
+                <button class="btn-theme sky" onclick="startGame('sky')">Sky Adventure</button>
+                <button class="btn-theme underwater" onclick="startGame('underwater')">Deep Sea</button>
+                <button class="btn-theme desert" onclick="startGame('desert')">Desert Quest</button>
+            </div>
+            <p class="age-hint">Target: 7-10 years old</p>
         </div>
 
         <div id="pause-screen" class="overlay hidden">
             <h1>Paused</h1>
-            <button onclick="togglePause()">Resume</button>
+            <button class="btn-main" onclick="togglePause()">Resume</button>
         </div>
 
         <div id="game-over-screen" class="overlay hidden">
-            <h1>Game Over</h1>
-            <p id="final-score">Score: 0</p>
-            <button onclick="location.reload()">Play Again</button>
+            <h1 id="game-over-title">Game Over!</h1>
+            <div class="stats-grid">
+                <div class="stat-item">Score: <span id="final-score">0</span></div>
+                <div class="stat-item">Correct: <span id="stat-correct">0</span></div>
+                <div class="stat-item">Best Streak: <span id="stat-streak">0</span></div>
+            </div>
+            <button class="btn-main" onclick="location.reload()">Play Again</button>
         </div>
+
+        <div id="level-up-overlay" class="level-up-msg hidden">LEVEL UP!</div>
 
         <div id="ui-layer">
             <div id="left-panel">
                 <div id="equation-container">
                     <div id="equation-text">? + ? = ?</div>
                 </div>
-                <div id="bullet-indicator">
-                    Lives: <span id="bullets-val">3</span>
+                <div id="lives-container">
+                    <!-- Heart icons will be injected here -->
                 </div>
             </div>
             <div id="stats-container">
-                <button id="pause-btn" style="pointer-events: auto; font-size: 16px; padding: 5px 15px;" onclick="togglePause()">Pause</button>
-                <div>Level: <span id="level-val">1</span></div>
-                <div>Score: <span id="score-val">0</span></div>
+                <button id="pause-btn" style="pointer-events: auto;" onclick="togglePause()">Pause</button>
+                <div class="hud-item">Level: <span id="level-val">1</span></div>
+                <div class="hud-item">Score: <span id="score-val">0</span></div>
+                <div id="player-display"></div>
             </div>
         </div>
 
