@@ -5,17 +5,20 @@ const MathLogic = {
         const operations = ['+', '-', '*', '/'];
         let op;
 
-        // At early levels, stick to + and -
-        if (level <= 2) {
-            op = operations[Math.floor(Math.random() * 2)];
-        } else if (level <= 5) {
-            op = operations[Math.floor(Math.random() * 3)];
+        // Steeper introduction of operations
+        if (level === 1) {
+            op = '+';
+        } else if (level === 2) {
+            op = Math.random() > 0.5 ? '+' : '-';
+        } else if (level === 3) {
+            op = ['+', '-', '*'][Math.floor(Math.random() * 3)];
         } else {
             op = operations[Math.floor(Math.random() * 4)];
         }
 
         let num1, num2, answer;
-        const maxNum = 10 + (level * 2);
+        // Aggressive number scaling
+        const maxNum = 10 + (level * 5);
 
         switch (op) {
             case '+':
@@ -25,20 +28,20 @@ const MathLogic = {
                 break;
             case '-':
                 num1 = Math.floor(Math.random() * maxNum) + 1;
-                num2 = Math.floor(Math.random() * num1); // Ensure positive result
+                num2 = Math.floor(Math.random() * num1);
                 answer = num1 - num2;
                 break;
             case '*':
-                const maxMul = 5 + Math.floor(level / 2);
+                const maxMul = 5 + level;
                 num1 = Math.floor(Math.random() * maxMul);
                 num2 = Math.floor(Math.random() * maxMul);
                 answer = num1 * num2;
                 break;
             case '/':
-                const maxDiv = 5 + Math.floor(level / 2);
-                num2 = Math.floor(Math.random() * maxDiv) + 1; // Divisor
-                answer = Math.floor(Math.random() * maxDiv); // Quotient
-                num1 = num2 * answer; // Dividend
+                const maxDiv = 5 + level;
+                num2 = Math.floor(Math.random() * maxDiv) + 1;
+                answer = Math.floor(Math.random() * maxDiv);
+                num1 = num2 * answer;
                 break;
         }
 
@@ -51,10 +54,12 @@ const MathLogic = {
 
     generateDistractors(correctAnswer, level) {
         const distractors = new Set();
-        const count = 3; // We want 4 saucers total (1 correct + 3 distractors)
+        const count = 3;
 
         while (distractors.size < count) {
-            let offset = Math.floor(Math.random() * 10) + 1;
+            // Distractors range also scales with level/answer size
+            let range = Math.max(10, Math.floor(correctAnswer * 0.5));
+            let offset = Math.floor(Math.random() * range) + 1;
             if (Math.random() > 0.5) offset *= -1;
 
             let distractor = correctAnswer + offset;
