@@ -6,13 +6,83 @@ let currentTheme = 'sky';
 let level = 1;
 let score = 0;
 let bullets = 3; // Now represents Lives
+let playerName = 'Player';
+let totalCorrect = 0;
+let currentStreak = 0;
+let longestStreak = 0;
 let saucers = [];
 let particles = [];
 let projectiles = [];
+let backgrounds = [];
 let player = null;
 let currentEquation = null;
 let lastTime = 0;
 let saucerSpeed = 1.2;
+
+class BackgroundElement {
+    constructor(type) {
+        this.type = type;
+        this.reset();
+    }
+    reset() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.vx = (Math.random() - 0.5) * 1;
+        this.vy = (Math.random() - 0.5) * 1;
+        this.size = 20 + Math.random() * 40;
+        if (currentTheme === 'underwater') {
+            this.vy = -(0.5 + Math.random() * 1.5); // Bubbles go up
+            this.vx = (Math.random() - 0.5) * 0.5;
+            this.y = canvas.height + Math.random() * 100;
+        } else if (currentTheme === 'sky') {
+            this.vx = 0.5 + Math.random() * 1; // Clouds drift right
+            this.vy = 0;
+            this.x = -100 - Math.random() * 500;
+        }
+    }
+    update(dt) {
+        const factor = dt / 16.67;
+        this.x += this.vx * factor;
+        this.y += this.vy * factor;
+
+        if (this.x > canvas.width + 200 || this.x < -200 || this.y > canvas.height + 200 || this.y < -200) {
+            this.reset();
+        }
+    }
+    draw() {
+        ctx.save();
+        ctx.globalAlpha = 0.4;
+        ctx.fillStyle = '#fff';
+        if (currentTheme === 'sky') {
+            this.drawCloud();
+        } else if (currentTheme === 'underwater') {
+            this.drawBubble();
+        } else if (currentTheme === 'desert') {
+            this.drawSand();
+        }
+        ctx.restore();
+    }
+    drawCloud() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.arc(this.x + this.size * 0.6, this.y - this.size * 0.3, this.size * 0.8, 0, Math.PI * 2);
+        ctx.arc(this.x + this.size * 1.2, this.y, this.size * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    drawBubble() {
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size / 4, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    drawSand() {
+        ctx.fillStyle = 'rgba(210, 180, 140, 0.3)';
+        ctx.beginPath();
+        ctx.ellipse(this.x, this.y, this.size, this.size / 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
 
 class Particle {
     constructor(x, y, color) {
@@ -35,10 +105,38 @@ class Particle {
         ctx.save();
         ctx.globalAlpha = this.alpha;
         ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
-        ctx.fill();
+        if (this.isStar) {
+            this.drawStar(this.x, this.y, 5, this.size, this.size / 2);
+        } else {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size || 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
         ctx.restore();
+    }
+
+    drawStar(cx, cy, spikes, outerRadius, innerRadius) {
+        let rot = Math.PI / 2 * 3;
+        let x = cx;
+        let y = cy;
+        let step = Math.PI / spikes;
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - outerRadius);
+        for (let i = 0; i < spikes; i++) {
+            x = cx + Math.cos(rot) * outerRadius;
+            y = cy + Math.sin(rot) * outerRadius;
+            ctx.lineTo(x, y);
+            rot += step;
+
+            x = cx + Math.cos(rot) * innerRadius;
+            y = cy + Math.sin(rot) * innerRadius;
+            ctx.lineTo(x, y);
+            rot += step;
+        }
+        ctx.lineTo(cx, cy - outerRadius);
+        ctx.closePath();
+        ctx.fill();
     }
 }
 
@@ -324,8 +422,8 @@ function handleInput(clientX, clientY) {
 
     if (hitIdx !== -1) {
         const s = saucers[hitIdx];
-        createExplosion(s.x, s.y, s.isCorrect ? '#2ed573' : '#ff4757');
         if (s.isCorrect) {
+            createCelebrationStars(s.x, s.y);
             // Proportional Scoring
             const timeElapsed = performance.now() - s.spawnTime;
             const percentUsed = timeElapsed / s.totalFallDuration;
@@ -342,18 +440,30 @@ function handleInput(clientX, clientY) {
             }
 
             score += points;
-            level = Math.floor(score / 100) + 1;
+            totalCorrect++;
+            currentStreak++;
+            if (currentStreak > longestStreak) longestStreak = currentStreak;
+
+            const newLevel = Math.floor(score / 100) + 1;
+            if (newLevel > level) {
+                showLevelUp();
+            }
+            level = newLevel;
+
             playHitSound(true);
             setTimeout(nextEquation, 500);
             saucers = [];
         } else {
+            createExplosion(s.x, s.y, '#ff4757');
             projectiles.push(new Projectile(s.x, s.y, player.x, player.y));
             saucers.splice(hitIdx, 1);
             playHitSound(false);
+            currentStreak = 0;
         }
     } else {
         // Mis-click costs a life immediately
         bullets--;
+        currentStreak = 0;
         updateUI();
         if (bullets <= 0) gameOver();
     }
@@ -363,6 +473,23 @@ function createExplosion(x, y, color) {
     for (let i = 0; i < 20; i++) {
         particles.push(new Particle(x, y, color));
     }
+}
+
+function createCelebrationStars(x, y) {
+    for (let i = 0; i < 30; i++) {
+        const p = new Particle(x, y, '#f1c40f');
+        p.isStar = true;
+        p.size = 5 + Math.random() * 10;
+        p.vx = (Math.random() - 0.5) * 15;
+        p.vy = (Math.random() - 0.5) * 15;
+        particles.push(p);
+    }
+}
+
+function showLevelUp() {
+    const el = document.getElementById('level-up-overlay');
+    el.classList.remove('hidden');
+    setTimeout(() => el.classList.add('hidden'), 1500);
 }
 
 function resize() {
@@ -379,6 +506,8 @@ function resize() {
 function startGame(theme) {
     initAudio();
     currentTheme = theme;
+    playerName = document.getElementById('player-name').value || 'Player';
+    document.getElementById('player-display').innerText = playerName;
     document.body.className = 'theme-' + theme;
     document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('game-over-screen').classList.add('hidden');
@@ -388,9 +517,14 @@ function startGame(theme) {
     level = 1;
     score = 0;
     bullets = 3;
+    totalCorrect = 0;
+    currentStreak = 0;
+    longestStreak = 0;
     saucers = [];
     particles = [];
     projectiles = [];
+    backgrounds = [];
+    for(let i=0; i<10; i++) backgrounds.push(new BackgroundElement());
     player = new Player();
     updateUI();
     nextEquation();
@@ -431,14 +565,24 @@ function spawnSaucers() {
 function updateUI() {
     document.getElementById('level-val').innerText = level;
     document.getElementById('score-val').innerText = score;
-    document.getElementById('bullets-val').innerText = bullets;
+
+    const container = document.getElementById('lives-container');
+    container.innerHTML = '';
+    for(let i=0; i<bullets; i++) {
+        const heart = document.createElement('div');
+        heart.className = 'heart';
+        container.appendChild(heart);
+    }
 }
 
 function gameOver() {
     if (gameState === 'GAMEOVER') return;
     gameState = 'GAMEOVER';
     document.getElementById('game-over-screen').classList.remove('hidden');
-    document.getElementById('final-score').innerText = 'Score: ' + score;
+    document.getElementById('final-score').innerText = score;
+    document.getElementById('stat-correct').innerText = totalCorrect;
+    document.getElementById('stat-streak').innerText = longestStreak;
+    document.getElementById('game-over-title').innerText = 'Great Job, ' + playerName + '!';
     playGameOverSound();
 }
 
@@ -459,6 +603,7 @@ function gameLoop(timestamp) {
 }
 
 function update(dt) {
+    backgrounds.forEach(bg => bg.update(dt));
     saucers.forEach(saucer => saucer.update(dt));
     for (let i = projectiles.length - 1; i >= 0; i--) {
         projectiles[i].update(dt);
@@ -475,7 +620,7 @@ function update(dt) {
 }
 
 function draw() {
-    drawBackground();
+    backgrounds.forEach(bg => bg.draw());
     const groundColor = getComputedStyle(document.documentElement).getPropertyValue('--ground-color').trim();
     ctx.fillStyle = groundColor || '#228B22';
     ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
@@ -484,29 +629,6 @@ function draw() {
     saucers.forEach(saucer => saucer.draw());
     projectiles.forEach(p => p.draw());
     particles.forEach(p => p.draw());
-}
-
-function drawBackground() {
-    if (currentTheme === 'sky') {
-        ctx.fillStyle = 'rgba(255,255,255,0.5)';
-        ctx.beginPath();
-        ctx.arc(100, 100, 30, 0, Math.PI * 2);
-        ctx.arc(130, 110, 40, 0, Math.PI * 2);
-        ctx.arc(160, 100, 30, 0, Math.PI * 2);
-        ctx.fill();
-    } else if (currentTheme === 'underwater') {
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        for(let i=0; i<5; i++) {
-            ctx.beginPath();
-            ctx.arc(canvas.width * 0.2 * i + 50, (Date.now() / 20 % canvas.height), 10, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    } else if (currentTheme === 'desert') {
-        ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
-        ctx.beginPath();
-        ctx.arc(canvas.width - 100, 100, 50, 0, Math.PI * 2);
-        ctx.fill();
-    }
 }
 
 window.onload = init;
