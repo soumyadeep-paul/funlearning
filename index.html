@@ -13,12 +13,33 @@
             <div class="input-group">
                 <input type="text" id="player-name" placeholder="Enter Your Name" maxlength="12">
             </div>
-            <div class="theme-selection">
-                <button class="btn-theme sky" onclick="startGame('sky')">Sky Adventure</button>
-                <button class="btn-theme underwater" onclick="startGame('underwater')">Deep Sea</button>
-                <button class="btn-theme desert" onclick="startGame('desert')">Desert Quest</button>
+
+            <div class="avatar-selection">
+                <p>Choose Your Superhero:</p>
+                <div class="avatar-grid">
+                    <div class="avatar-option selected" data-avatar="super-red" onclick="selectAvatar('super-red')">
+                        <canvas id="preview-super-red" class="avatar-canvas" width="80" height="80"></canvas>
+                        <span>Super Red</span>
+                    </div>
+                    <div class="avatar-option" data-avatar="cosmo-blue" onclick="selectAvatar('cosmo-blue')">
+                        <canvas id="preview-cosmo-blue" class="avatar-canvas" width="80" height="80"></canvas>
+                        <span>Cosmo Blue</span>
+                    </div>
+                    <div class="avatar-option" data-avatar="aqua-green" onclick="selectAvatar('aqua-green')">
+                        <canvas id="preview-aqua-green" class="avatar-canvas" width="80" height="80"></canvas>
+                        <span>Aqua Green</span>
+                    </div>
+                </div>
             </div>
-            <p class="age-hint">Target: 7-10 years old</p>
+
+            <button class="btn-play-large" onclick="startGameWithDefault()">PLAY!</button>
+
+            <div class="theme-selection">
+                <p>Theme:</p>
+                <button class="btn-theme-small sky" onclick="setTheme('sky')">Sky</button>
+                <button class="btn-theme-small underwater active" id="btn-underwater" onclick="setTheme('underwater')">Sea</button>
+                <button class="btn-theme-small desert" onclick="setTheme('desert')">Desert</button>
+            </div>
         </div>
 
         <div id="pause-screen" class="overlay hidden">

@@ -6,6 +6,8 @@ let currentTheme = 'sky';
 let level = 1;
 let score = 0;
 let bullets = 3; // Now represents Lives
+let selectedAvatar = 'super-red';
+let selectedTheme = 'underwater';
 let playerName = 'Player';
 let totalCorrect = 0;
 let currentStreak = 0;
@@ -146,10 +148,10 @@ class Projectile {
         this.y = y;
         this.targetX = targetX;
         this.targetY = targetY;
-        this.speed = 8;
-        const angle = Math.atan2(targetY - y, targetX - x);
-        this.vx = Math.cos(angle) * this.speed;
-        this.vy = Math.sin(angle) * this.speed;
+        this.speed = 6;
+        this.angle = Math.atan2(targetY - y, targetX - x);
+        this.vx = Math.cos(this.angle) * this.speed;
+        this.vy = Math.sin(this.angle) * this.speed;
         this.reached = false;
     }
 
@@ -159,10 +161,11 @@ class Projectile {
         this.y += this.vy * factor;
 
         const dist = Math.sqrt((this.x - this.targetX) ** 2 + (this.y - this.targetY) ** 2);
-        if (dist < 15) {
+        if (dist < 20) {
             this.reached = true;
-            createExplosion(this.x, this.y, '#ff4757');
+            createRichExplosion(this.x, this.y);
             bullets--;
+            if (player) player.hurtTime = 500;
             updateUI();
             if (bullets <= 0) {
                 gameOver();
@@ -173,12 +176,31 @@ class Projectile {
     draw() {
         ctx.save();
         ctx.translate(this.x, this.y);
-        ctx.fillStyle = '#576574';
+        ctx.rotate(this.angle);
+
+        // Bazooka Rocket
+        ctx.fillStyle = '#2f3542';
         ctx.beginPath();
-        ctx.arc(0, 0, 12, 0, Math.PI * 2);
+        ctx.roundRect(-20, -10, 30, 20, 5);
         ctx.fill();
-        ctx.strokeStyle = '#2f3542';
-        ctx.stroke();
+
+        ctx.fillStyle = '#ff4757';
+        ctx.beginPath();
+        ctx.moveTo(10, -10);
+        ctx.lineTo(25, 0);
+        ctx.lineTo(10, 10);
+        ctx.closePath();
+        ctx.fill();
+
+        // Rocket exhaust
+        const offset = (Date.now() / 50) % 5;
+        ctx.fillStyle = '#f1c40f';
+        ctx.beginPath();
+        ctx.moveTo(-20, -5);
+        ctx.lineTo(-30 - offset, 0);
+        ctx.lineTo(-20, 5);
+        ctx.fill();
+
         ctx.restore();
     }
 }
@@ -189,36 +211,133 @@ class Player {
         this.height = 80;
         this.x = canvas.width / 2;
         this.y = canvas.height - 50 - 40;
+        this.avatar = selectedAvatar;
+        this.hurtTime = 0;
+    }
+
+    update(dt) {
+        if (this.hurtTime > 0) this.hurtTime -= dt;
     }
 
     draw() {
-        ctx.save();
-        ctx.translate(this.x, this.y);
+        const time = Date.now() / 200;
+        const hurt = this.hurtTime > 0;
+        drawAvatar(ctx, this.x, this.y, this.avatar, time, hurt);
+    }
+}
 
-        // Character
-        ctx.fillStyle = '#ff9f43';
-        ctx.beginPath();
-        ctx.roundRect(-20, -30, 40, 50, 10);
-        ctx.fill();
-        ctx.fillStyle = '#ffdbac';
-        ctx.beginPath();
-        ctx.arc(0, -45, 15, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#000';
-        ctx.beginPath();
-        ctx.arc(-5, -48, 2, 0, Math.PI * 2);
-        ctx.arc(5, -48, 2, 0, Math.PI * 2);
-        ctx.fill();
+function drawAvatar(context, x, y, type, time, hurt) {
+    context.save();
+    context.translate(x, y);
 
-        if (currentTheme === 'underwater') {
-            ctx.fillStyle = '#54a0ff';
-            ctx.beginPath();
-            ctx.arc(0, -50, 18, Math.PI, 0);
-            ctx.fill();
+    if (hurt) {
+        context.translate(Math.sin(Date.now() * 0.1) * 5, 0);
+    }
+
+    const bounce = Math.sin(time) * 3;
+
+    if (type === 'super-red') {
+        // Classic Cape Hero
+        context.fillStyle = '#ff4757';
+        context.beginPath();
+        const capeWobble = Math.sin(time * 0.5) * 10;
+        context.moveTo(-20, -20 + bounce);
+        context.lineTo(-40 - capeWobble, 30 + bounce);
+        context.lineTo(40 + capeWobble, 30 + bounce);
+        context.lineTo(20, -20 + bounce);
+        context.closePath();
+        context.fill();
+
+        context.fillStyle = '#ee5253';
+        context.beginPath();
+        context.roundRect(-20, -30 + bounce, 40, 50, 10);
+        context.fill();
+
+        context.fillStyle = '#f1c40f';
+        context.beginPath();
+        context.arc(0, -10 + bounce, 8, 0, Math.PI * 2);
+        context.fill();
+    } else if (type === 'cosmo-blue') {
+        // Robo/Armor Hero
+        context.fillStyle = '#341f97';
+        context.fillRect(-22, -25 + bounce, 44, 40);
+        context.fillStyle = '#54a0ff';
+        context.fillRect(-18, -20 + bounce, 36, 30);
+
+        // Glowing shoulder pads
+        context.fillStyle = '#00d2ff';
+        context.beginPath();
+        context.arc(-22, -22 + bounce, 8, 0, Math.PI * 2);
+        context.arc(22, -22 + bounce, 8, 0, Math.PI * 2);
+        context.fill();
+    } else if (type === 'aqua-green') {
+        // Elemental/Nature Hero
+        context.fillStyle = '#01a3a4';
+        context.beginPath();
+        context.moveTo(0, 30 + bounce);
+        context.lineTo(-25, -20 + bounce);
+        context.lineTo(25, -20 + bounce);
+        context.closePath();
+        context.fill();
+
+        context.fillStyle = '#1dd1a1';
+        context.beginPath();
+        context.arc(0, -10 + bounce, 20, 0, Math.PI * 2);
+        context.fill();
+
+        // Leaf emblem
+        context.fillStyle = '#10ac84';
+        context.beginPath();
+        context.ellipse(0, -10 + bounce, 5, 12, Math.PI/4, 0, Math.PI*2);
+        context.fill();
+    }
+
+    // Head
+    context.fillStyle = '#ffdbac';
+    context.beginPath();
+    context.arc(0, -45 + bounce, 18, 0, Math.PI * 2);
+    context.fill();
+
+    if (hurt) {
+        context.fillStyle = 'rgba(255, 0, 0, 0.3)';
+        context.beginPath();
+        context.arc(0, -45 + bounce, 18, 0, Math.PI * 2);
+        context.fill();
+
+        context.strokeStyle = '#000';
+        context.lineWidth = 2;
+        for (let eyeX of [-6, 6]) {
+            context.beginPath();
+            context.moveTo(eyeX - 3, -48 + bounce);
+            context.lineTo(eyeX + 3, -42 + bounce);
+            context.moveTo(eyeX + 3, -48 + bounce);
+            context.lineTo(eyeX - 3, -42 + bounce);
+            context.stroke();
+        }
+    } else {
+        // Mask specific to hero
+        let maskColor = '#ff4757';
+        if (type === 'cosmo-blue') maskColor = '#341f97';
+        if (type === 'aqua-green') maskColor = '#01a3a4';
+
+        context.fillStyle = maskColor;
+        if (type === 'cosmo-blue') {
+            context.fillRect(-18, -55 + bounce, 36, 15);
+        } else {
+            context.beginPath();
+            context.roundRect(-18, -52 + bounce, 36, 12, 5);
+            context.fill();
         }
 
-        ctx.restore();
+        const shine = Math.abs(Math.sin(time)) * 0.5 + 0.5;
+        context.fillStyle = `rgba(255, 255, 255, ${shine})`;
+        context.beginPath();
+        context.arc(-7, -46 + bounce, 3, 0, Math.PI * 2);
+        context.arc(7, -46 + bounce, 3, 0, Math.PI * 2);
+        context.fill();
     }
+
+    context.restore();
 }
 
 class Saucer {
@@ -326,6 +445,12 @@ function init() {
     ctx = canvas.getContext('2d');
     resize();
     window.addEventListener('resize', resize);
+
+    // Default theme
+    setTheme('underwater');
+
+    // Start home screen preview loops
+    requestAnimationFrame(previewLoop);
 
     canvas.addEventListener('mousedown', (e) => {
         if (gameState !== 'PLAYING') return;
@@ -444,9 +569,6 @@ function handleInput(clientX, clientY) {
             currentStreak++;
             if (currentStreak > longestStreak) longestStreak = currentStreak;
 
-            // Refill lives on correct answer (max 3)
-            if (bullets < 3) bullets++;
-
             const newLevel = Math.floor(score / 100) + 1;
             if (newLevel > level) {
                 showLevelUp();
@@ -472,6 +594,7 @@ function handleInput(clientX, clientY) {
     } else {
         // Mis-click costs a life immediately
         bullets--;
+        if (player) player.hurtTime = 500;
         currentStreak = 0;
         updateUI();
         if (bullets <= 0) gameOver();
@@ -481,6 +604,19 @@ function handleInput(clientX, clientY) {
 function createExplosion(x, y, color) {
     for (let i = 0; i < 20; i++) {
         particles.push(new Particle(x, y, color));
+    }
+}
+
+function createRichExplosion(x, y) {
+    const colors = ['#ff4757', '#ff6b6b', '#f1c40f', '#e67e22', '#ffffff'];
+    for (let i = 0; i < 50; i++) {
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const p = new Particle(x, y, color);
+        p.size = 4 + Math.random() * 8;
+        p.vx = (Math.random() - 0.5) * 20;
+        p.vy = (Math.random() - 0.5) * 20;
+        p.life = 1 + Math.random();
+        particles.push(p);
     }
 }
 
@@ -513,6 +649,53 @@ function resize() {
             player.y = canvas.height - 50 - 40;
         }
     }
+}
+
+function setTheme(theme) {
+    selectedTheme = theme;
+    document.querySelectorAll('.btn-theme-small').forEach(btn => btn.classList.remove('active'));
+    if (theme === 'underwater') {
+        const btn = document.getElementById('btn-underwater');
+        if (btn) btn.classList.add('active');
+    } else {
+        const btn = document.querySelector(`.btn-theme-small.${theme}`);
+        if (btn) btn.classList.add('active');
+    }
+    // Update body class for home screen preview
+    document.body.className = 'theme-' + theme;
+}
+
+function selectAvatar(avatar) {
+    selectedAvatar = avatar;
+    const options = document.querySelectorAll('.avatar-option');
+    options.forEach(opt => {
+        opt.classList.remove('selected');
+        if (opt.getAttribute('data-avatar') === avatar) {
+            opt.classList.add('selected');
+        }
+    });
+}
+
+function previewLoop() {
+    if (gameState !== 'START') return;
+
+    const avatars = ['super-red', 'cosmo-blue', 'aqua-green'];
+    const time = Date.now() / 200;
+
+    avatars.forEach(id => {
+        const can = document.getElementById(`preview-${id}`);
+        if (can) {
+            const pctx = can.getContext('2d');
+            pctx.clearRect(0, 0, can.width, can.height);
+            drawAvatar(pctx, can.width / 2, can.height - 20, id, time, false);
+        }
+    });
+
+    requestAnimationFrame(previewLoop);
+}
+
+function startGameWithDefault() {
+    startGame(selectedTheme);
 }
 
 function startGame(theme) {
@@ -616,6 +799,7 @@ function gameLoop(timestamp) {
 
 function update(dt) {
     backgrounds.forEach(bg => bg.update(dt));
+    if (player) player.update(dt);
     saucers.forEach(saucer => saucer.update(dt));
     for (let i = projectiles.length - 1; i >= 0; i--) {
         projectiles[i].update(dt);
