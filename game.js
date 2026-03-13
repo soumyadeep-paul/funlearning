@@ -14,7 +14,6 @@ let currentEquation = null;
 let lastTime = 0;
 let saucerSpeed = 1.2;
 
-
 class Particle {
     constructor(x, y, color) {
         this.x = x;
@@ -64,6 +63,7 @@ class Projectile {
         const dist = Math.sqrt((this.x - this.targetX) ** 2 + (this.y - this.targetY) ** 2);
         if (dist < 15) {
             this.reached = true;
+            createExplosion(this.x, this.y, '#ff4757');
             bullets--;
             updateUI();
             if (bullets <= 0) {
@@ -123,7 +123,6 @@ class Player {
     }
 }
 
-
 class Saucer {
     constructor(x, y, value, isCorrect) {
         this.x = x;
@@ -134,7 +133,6 @@ class Saucer {
         this.angle = 0;
         this.spawnTime = performance.now();
         this.totalFallDuration = (canvas.height - 50 - y) / saucerSpeed * 16.67;
-
     }
 
     update(dt) {
