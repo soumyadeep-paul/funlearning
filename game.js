@@ -1,16 +1,16 @@
 // Core Game Logic
 
 let canvas, ctx, audioCtx;
-let gameState = 'START'; // START, PLAYING, GAMEOVER
+let gameState = 'START'; // START, PLAYING, GAMEOVER, PAUSED
 let currentTheme = 'sky';
 let level = 1;
 let score = 0;
-let bullets = 2;
+let bullets = 3;
 let saucers = [];
 let particles = [];
 let currentEquation = null;
 let lastTime = 0;
-let saucerSpeed = 1;
+let saucerSpeed = 1.2; // Constant speed as per user request
 
 class Particle {
     constructor(x, y, color) {
@@ -23,10 +23,11 @@ class Particle {
         this.life = 1;
     }
     update(dt) {
-        this.x += this.vx;
-        this.y += this.vy;
-        this.life -= 0.02;
-        this.alpha = this.life;
+        const factor = dt / 16.67;
+        this.x += this.vx * factor;
+        this.y += this.vy * factor;
+        this.life -= 0.02 * factor;
+        this.alpha = Math.max(0, this.life);
     }
     draw() {
         ctx.save();
@@ -46,13 +47,12 @@ class Saucer {
         this.value = value;
         this.isCorrect = isCorrect;
         this.radius = 40;
-        this.speed = saucerSpeed;
         this.angle = 0;
     }
 
     update(dt) {
-        const factor = dt / 16.67; // Normalize to 60fps
-        this.y += this.speed * factor;
+        const factor = dt / 16.67;
+        this.y += saucerSpeed * factor;
         this.angle += 0.05 * factor;
         if (this.y > canvas.height - 50) {
             gameOver();
@@ -63,10 +63,29 @@ class Saucer {
         ctx.save();
         ctx.translate(this.x, this.y + Math.sin(this.angle) * 5);
 
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = this.isCorrect ? 'rgba(46, 213, 115, 0.5)' : 'rgba(255, 71, 87, 0.5)';
+        // No more correct-answer hints (no glow)
 
-        ctx.fillStyle = currentTheme === 'sky' ? '#dfe4ea' : '#70a1ff';
+        if (currentTheme === 'sky') {
+            this.drawSaucer();
+        } else if (currentTheme === 'underwater') {
+            this.drawShark();
+        } else if (currentTheme === 'desert') {
+            this.drawCactus();
+        }
+
+        // Draw value
+        ctx.fillStyle = '#2f3542';
+        if (currentTheme === 'underwater') ctx.fillStyle = '#fff';
+        ctx.font = 'bold 24px "Segoe UI", Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.value, 0, currentTheme === 'desert' ? -20 : -5);
+
+        ctx.restore();
+    }
+
+    drawSaucer() {
+        ctx.fillStyle = '#dfe4ea';
         ctx.beginPath();
         ctx.ellipse(0, 0, 45, 18, 0, 0, Math.PI * 2);
         ctx.fill();
@@ -79,22 +98,53 @@ class Saucer {
         ctx.arc(0, -8, 20, Math.PI, 0);
         ctx.fill();
         ctx.stroke();
+    }
 
-        for (let i = 0; i < 5; i++) {
-            ctx.fillStyle = (Math.floor(Date.now() / 200) + i) % 2 === 0 ? '#ff4757' : '#eccc68';
-            ctx.beginPath();
-            ctx.arc(-30 + i * 15, 5, 3, 0, Math.PI * 2);
-            ctx.fill();
-        }
+    drawShark() {
+        ctx.fillStyle = '#747d8c';
+        // Body
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 50, 20, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Tail
+        ctx.beginPath();
+        ctx.moveTo(40, 0);
+        ctx.lineTo(60, -15);
+        ctx.lineTo(60, 15);
+        ctx.closePath();
+        ctx.fill();
+        // Fin
+        ctx.beginPath();
+        ctx.moveTo(0, -15);
+        ctx.lineTo(-10, -35);
+        ctx.lineTo(15, -15);
+        ctx.closePath();
+        ctx.fill();
+        // Eye
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(-30, -5, 3, 0, Math.PI * 2);
+        ctx.fill();
+    }
 
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = '#2f3542';
-        ctx.font = 'bold 24px "Segoe UI", Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(this.value, 0, -5);
-
-        ctx.restore();
+    drawCactus() {
+        ctx.fillStyle = '#2ed573';
+        // Main body
+        ctx.beginPath();
+        ctx.roundRect(-15, -40, 30, 60, 15);
+        ctx.fill();
+        ctx.strokeStyle = '#26af5c';
+        ctx.stroke();
+        // Left arm
+        ctx.beginPath();
+        ctx.roundRect(-30, -25, 15, 25, 7);
+        ctx.fill();
+        ctx.stroke();
+        // Right arm
+        ctx.beginPath();
+        ctx.roundRect(15, -30, 15, 25, 7);
+        ctx.fill();
+        ctx.stroke();
     }
 }
 
@@ -106,10 +156,12 @@ function init() {
     window.addEventListener('resize', resize);
 
     canvas.addEventListener('mousedown', (e) => {
+        if (gameState === 'START' || gameState === 'GAMEOVER') return;
         initAudio();
         handleInput(e.clientX, e.clientY);
     });
     canvas.addEventListener('touchstart', (e) => {
+        if (gameState === 'START' || gameState === 'GAMEOVER') return;
         initAudio();
         e.preventDefault();
         const touch = e.touches[0];
@@ -132,7 +184,7 @@ function playShootSound() {
     osc.type = 'square';
     osc.frequency.setValueAtTime(400, audioCtx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
@@ -153,7 +205,7 @@ function playHitSound(isCorrect) {
         osc.frequency.setValueAtTime(220, audioCtx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.3);
     }
-    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
@@ -168,7 +220,7 @@ function playGameOverSound() {
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(110, audioCtx.currentTime);
     osc.frequency.linearRampToValueAtTime(55, audioCtx.currentTime + 1);
-    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
@@ -184,8 +236,7 @@ function handleInput(clientX, clientY) {
     const x = clientX - rect.left;
     const y = clientY - rect.top;
 
-    bullets--;
-    updateUI();
+    bullets--; // Bullet lost on every shot
 
     playShootSound();
 
@@ -203,9 +254,9 @@ function handleInput(clientX, clientY) {
         const s = saucers[hitIdx];
         createExplosion(s.x, s.y, s.isCorrect ? '#2ed573' : '#ff4757');
         if (s.isCorrect) {
+            bullets++; // Restore the bullet used for correct shot
             score += 10;
             level = Math.floor(score / 50) + 1;
-            saucerSpeed = 1 + (level * 0.2);
             playHitSound(true);
             setTimeout(nextEquation, 500);
             saucers = [];
@@ -214,6 +265,8 @@ function handleInput(clientX, clientY) {
             playHitSound(false);
         }
     }
+
+    updateUI();
 }
 
 function createExplosion(x, y, color) {
@@ -235,23 +288,33 @@ function startGame(theme) {
     document.body.className = 'theme-' + theme;
     document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('game-over-screen').classList.add('hidden');
+    document.getElementById('pause-screen').classList.add('hidden');
 
     gameState = 'PLAYING';
     level = 1;
     score = 0;
-    bullets = 2;
+    bullets = 3;
     saucers = [];
     particles = [];
-    saucerSpeed = 1;
     updateUI();
     nextEquation();
+}
+
+function togglePause() {
+    if (gameState === 'PLAYING') {
+        gameState = 'PAUSED';
+        document.getElementById('pause-screen').classList.remove('hidden');
+    } else if (gameState === 'PAUSED') {
+        gameState = 'PLAYING';
+        document.getElementById('pause-screen').classList.add('hidden');
+        lastTime = performance.now();
+    }
 }
 
 function nextEquation() {
     if (gameState !== 'PLAYING') return;
     currentEquation = MathLogic.generateEquation(level);
     document.getElementById('equation-text').innerText = currentEquation.text;
-    bullets = 2;
     spawnSaucers();
     updateUI();
 }
@@ -292,6 +355,8 @@ function gameLoop(timestamp) {
     if (gameState === 'PLAYING') {
         update(deltaTime);
         draw();
+    } else if (gameState === 'PAUSED') {
+        draw();
     }
 
     requestAnimationFrame(gameLoop);
@@ -313,8 +378,6 @@ function draw() {
     const groundColor = getComputedStyle(document.documentElement).getPropertyValue('--ground-color').trim();
     ctx.fillStyle = groundColor || '#228B22';
     ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
-    ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-    ctx.strokeRect(0, canvas.height - 50, canvas.width, 50);
 
     saucers.forEach(saucer => saucer.draw());
     particles.forEach(p => p.draw());
@@ -328,13 +391,19 @@ function drawBackground() {
         ctx.arc(130, 110, 40, 0, Math.PI * 2);
         ctx.arc(160, 100, 30, 0, Math.PI * 2);
         ctx.fill();
-    } else {
+    } else if (currentTheme === 'underwater') {
         ctx.fillStyle = 'rgba(255,255,255,0.3)';
         for(let i=0; i<5; i++) {
             ctx.beginPath();
             ctx.arc(canvas.width * 0.2 * i + 50, (Date.now() / 20 % canvas.height), 10, 0, Math.PI * 2);
             ctx.fill();
         }
+    } else if (currentTheme === 'desert') {
+        // Draw some sun
+        ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+        ctx.beginPath();
+        ctx.arc(canvas.width - 100, 100, 50, 0, Math.PI * 2);
+        ctx.fill();
     }
 }
 

@@ -14,7 +14,13 @@
             <div class="theme-selection">
                 <button onclick="startGame('sky')">Sky Theme</button>
                 <button onclick="startGame('underwater')">Underwater Theme</button>
+                <button onclick="startGame('desert')">Desert Theme</button>
             </div>
+        </div>
+
+        <div id="pause-screen" class="overlay hidden">
+            <h1>Paused</h1>
+            <button onclick="togglePause()">Resume</button>
         </div>
 
         <div id="game-over-screen" class="overlay hidden">
@@ -29,10 +35,11 @@
                     <div id="equation-text">? + ? = ?</div>
                 </div>
                 <div id="bullet-indicator">
-                    Bullets: <span id="bullets-val">2</span>
+                    Bullets: <span id="bullets-val">3</span>
                 </div>
             </div>
             <div id="stats-container">
+                <button id="pause-btn" style="pointer-events: auto; font-size: 16px; padding: 5px 15px;" onclick="togglePause()">Pause</button>
                 <div>Level: <span id="level-val">1</span></div>
                 <div>Score: <span id="score-val">0</span></div>
             </div>

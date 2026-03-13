@@ -134,3 +134,11 @@ button:active {
     --text-color: #ffffff;
     --accent-color: #82ccdd;
 }
+
+.theme-desert {
+    --bg-color: #f7d794;
+    --ground-color: #cf6a17;
+    --ui-bg: rgba(255, 255, 255, 0.8);
+    --text-color: #5d3f1a;
+    --accent-color: #cf6a17;
+}
