@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Math Shooter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen" class="overlay">
+            <h1>Math Shooter</h1>
+            <p>Target: 7-10 years old</p>
+            <div class="theme-selection">
+                <button onclick="startGame('sky')">Sky Theme</button>
+                <button onclick="startGame('underwater')">Underwater Theme</button>
+            </div>
+        </div>
+
+        <div id="game-over-screen" class="overlay hidden">
+            <h1>Game Over</h1>
+            <p id="final-score">Score: 0</p>
+            <button onclick="location.reload()">Play Again</button>
+        </div>
+
+        <div id="ui-layer">
+            <div id="left-panel">
+                <div id="equation-container">
+                    <div id="equation-text">? + ? = ?</div>
+                </div>
+                <div id="bullet-indicator">
+                    Bullets: <span id="bullets-val">2</span>
+                </div>
+            </div>
+            <div id="stats-container">
+                <div>Level: <span id="level-val">1</span></div>
+                <div>Score: <span id="score-val">0</span></div>
+            </div>
+        </div>
+
+        <canvas id="game-canvas"></canvas>
+    </div>
+    <script src="math-logic.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
