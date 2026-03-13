@@ -17,30 +17,35 @@ const MathLogic = {
         }
 
         let num1, num2, answer;
-        // Aggressive number scaling
+
+        // Use a minimum number that scales with level to keep difficulty consistent
+        const minNum = Math.floor(level * 1.5);
         const maxNum = 10 + (level * 5);
 
         switch (op) {
             case '+':
-                num1 = Math.floor(Math.random() * maxNum);
-                num2 = Math.floor(Math.random() * maxNum);
+                num1 = Math.floor(Math.random() * (maxNum - minNum)) + minNum;
+                num2 = Math.floor(Math.random() * (maxNum - minNum)) + minNum;
                 answer = num1 + num2;
                 break;
             case '-':
-                num1 = Math.floor(Math.random() * maxNum) + 1;
-                num2 = Math.floor(Math.random() * num1);
+                num1 = Math.floor(Math.random() * (maxNum - minNum)) + minNum + 5;
+                num2 = Math.floor(Math.random() * (num1 - minNum)) + minNum;
                 answer = num1 - num2;
                 break;
             case '*':
-                const maxMul = 5 + level;
-                num1 = Math.floor(Math.random() * maxMul);
-                num2 = Math.floor(Math.random() * maxMul);
+                // Multipliers shouldn't be too huge for 7-10y, but 0/1 are boring
+                const minMul = Math.min(2 + Math.floor(level/3), 5);
+                const maxMul = 5 + Math.floor(level * 1.2);
+                num1 = Math.floor(Math.random() * (maxMul - minMul)) + minMul;
+                num2 = Math.floor(Math.random() * (maxMul - minMul)) + minMul;
                 answer = num1 * num2;
                 break;
             case '/':
-                const maxDiv = 5 + level;
-                num2 = Math.floor(Math.random() * maxDiv) + 1;
-                answer = Math.floor(Math.random() * maxDiv);
+                const minD = Math.min(2 + Math.floor(level/3), 5);
+                const maxD = 5 + level;
+                num2 = Math.floor(Math.random() * (maxD - minD)) + minD;
+                answer = Math.floor(Math.random() * (maxD - minD)) + minD;
                 num1 = num2 * answer;
                 break;
         }

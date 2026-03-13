@@ -256,7 +256,7 @@ class Saucer {
 
         ctx.fillStyle = '#2f3542';
         if (currentTheme === 'underwater') ctx.fillStyle = '#fff';
-        ctx.font = 'bold 24px "Segoe UI", Arial';
+        ctx.font = 'bold 24px "Fredoka", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(this.value, 0, currentTheme === 'desert' ? -20 : -5);
@@ -424,25 +424,28 @@ function handleInput(clientX, clientY) {
         const s = saucers[hitIdx];
         if (s.isCorrect) {
             createCelebrationStars(s.x, s.y);
-            // Proportional Scoring
+            // Proportional Scoring - Constant base points to avoid level-up spam
             const timeElapsed = performance.now() - s.spawnTime;
             const percentUsed = timeElapsed / s.totalFallDuration;
-            const maxPoints = level * 10;
-            let points = maxPoints;
+            const basePoints = 10; // Fixed base instead of level * 10
+            let points = basePoints;
 
             if (percentUsed < 0.1) {
-                points = maxPoints;
+                points = basePoints;
             } else if (percentUsed > 0.9) {
-                points = Math.max(1, Math.round(maxPoints * 0.1));
+                points = Math.max(1, Math.round(basePoints * 0.1));
             } else {
                 const ratio = 1 - (percentUsed - 0.1) / 0.8;
-                points = Math.max(1, Math.round(maxPoints * (0.1 + 0.9 * ratio)));
+                points = Math.max(1, Math.round(basePoints * (0.1 + 0.9 * ratio)));
             }
 
             score += points;
             totalCorrect++;
             currentStreak++;
             if (currentStreak > longestStreak) longestStreak = currentStreak;
+
+            // Refill lives on correct answer (max 3)
+            if (bullets < 3) bullets++;
 
             const newLevel = Math.floor(score / 100) + 1;
             if (newLevel > level) {
@@ -451,8 +454,14 @@ function handleInput(clientX, clientY) {
             level = newLevel;
 
             playHitSound(true);
-            setTimeout(nextEquation, 500);
+
+            // Clear saucers and set a temporary flag to ignore mis-clicks during transition
             saucers = [];
+            gameState = 'TRANSITION';
+            setTimeout(() => {
+                if (gameState === 'TRANSITION') gameState = 'PLAYING';
+                nextEquation();
+            }, 500);
         } else {
             createExplosion(s.x, s.y, '#ff4757');
             projectiles.push(new Projectile(s.x, s.y, player.x, player.y));
@@ -476,12 +485,15 @@ function createExplosion(x, y, color) {
 }
 
 function createCelebrationStars(x, y) {
-    for (let i = 0; i < 30; i++) {
-        const p = new Particle(x, y, '#f1c40f');
+    const colors = ['#f1c40f', '#fff', '#f39c12', '#fbc531'];
+    for (let i = 0; i < 40; i++) {
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const p = new Particle(x, y, color);
         p.isStar = true;
-        p.size = 5 + Math.random() * 10;
-        p.vx = (Math.random() - 0.5) * 15;
-        p.vy = (Math.random() - 0.5) * 15;
+        p.size = 6 + Math.random() * 12;
+        p.vx = (Math.random() - 0.5) * 18;
+        p.vy = (Math.random() - 0.5) * 18;
+        p.life = 1.5; // Longer lasting stars
         particles.push(p);
     }
 }
@@ -592,7 +604,7 @@ function gameLoop(timestamp) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (gameState === 'PLAYING') {
+    if (gameState === 'PLAYING' || gameState === 'TRANSITION') {
         update(deltaTime);
         draw();
     } else if (gameState === 'PAUSED') {
