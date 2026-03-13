@@ -5,12 +5,15 @@ let gameState = 'START'; // START, PLAYING, GAMEOVER, PAUSED
 let currentTheme = 'sky';
 let level = 1;
 let score = 0;
-let bullets = 3;
+let bullets = 3; // Now represents Lives
 let saucers = [];
 let particles = [];
+let projectiles = [];
+let player = null;
 let currentEquation = null;
 let lastTime = 0;
-let saucerSpeed = 1.2; // Constant speed as per user request
+let saucerSpeed = 1.2;
+
 
 class Particle {
     constructor(x, y, color) {
@@ -40,6 +43,87 @@ class Particle {
     }
 }
 
+class Projectile {
+    constructor(x, y, targetX, targetY) {
+        this.x = x;
+        this.y = y;
+        this.targetX = targetX;
+        this.targetY = targetY;
+        this.speed = 8;
+        const angle = Math.atan2(targetY - y, targetX - x);
+        this.vx = Math.cos(angle) * this.speed;
+        this.vy = Math.sin(angle) * this.speed;
+        this.reached = false;
+    }
+
+    update(dt) {
+        const factor = dt / 16.67;
+        this.x += this.vx * factor;
+        this.y += this.vy * factor;
+
+        const dist = Math.sqrt((this.x - this.targetX) ** 2 + (this.y - this.targetY) ** 2);
+        if (dist < 15) {
+            this.reached = true;
+            bullets--;
+            updateUI();
+            if (bullets <= 0) {
+                gameOver();
+            }
+        }
+    }
+
+    draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.fillStyle = '#576574';
+        ctx.beginPath();
+        ctx.arc(0, 0, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#2f3542';
+        ctx.stroke();
+        ctx.restore();
+    }
+}
+
+class Player {
+    constructor() {
+        this.width = 60;
+        this.height = 80;
+        this.x = canvas.width / 2;
+        this.y = canvas.height - 50 - 40;
+    }
+
+    draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+
+        // Character
+        ctx.fillStyle = '#ff9f43';
+        ctx.beginPath();
+        ctx.roundRect(-20, -30, 40, 50, 10);
+        ctx.fill();
+        ctx.fillStyle = '#ffdbac';
+        ctx.beginPath();
+        ctx.arc(0, -45, 15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(-5, -48, 2, 0, Math.PI * 2);
+        ctx.arc(5, -48, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (currentTheme === 'underwater') {
+            ctx.fillStyle = '#54a0ff';
+            ctx.beginPath();
+            ctx.arc(0, -50, 18, Math.PI, 0);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+}
+
+
 class Saucer {
     constructor(x, y, value, isCorrect) {
         this.x = x;
@@ -48,6 +132,9 @@ class Saucer {
         this.isCorrect = isCorrect;
         this.radius = 40;
         this.angle = 0;
+        this.spawnTime = performance.now();
+        this.totalFallDuration = (canvas.height - 50 - y) / saucerSpeed * 16.67;
+
     }
 
     update(dt) {
@@ -63,8 +150,6 @@ class Saucer {
         ctx.save();
         ctx.translate(this.x, this.y + Math.sin(this.angle) * 5);
 
-        // No more correct-answer hints (no glow)
-
         if (currentTheme === 'sky') {
             this.drawSaucer();
         } else if (currentTheme === 'underwater') {
@@ -73,7 +158,6 @@ class Saucer {
             this.drawCactus();
         }
 
-        // Draw value
         ctx.fillStyle = '#2f3542';
         if (currentTheme === 'underwater') ctx.fillStyle = '#fff';
         ctx.font = 'bold 24px "Segoe UI", Arial';
@@ -92,7 +176,6 @@ class Saucer {
         ctx.strokeStyle = '#2f3542';
         ctx.lineWidth = 2;
         ctx.stroke();
-
         ctx.fillStyle = 'rgba(112, 161, 255, 0.8)';
         ctx.beginPath();
         ctx.arc(0, -8, 20, Math.PI, 0);
@@ -102,25 +185,21 @@ class Saucer {
 
     drawShark() {
         ctx.fillStyle = '#747d8c';
-        // Body
         ctx.beginPath();
         ctx.ellipse(0, 0, 50, 20, 0, 0, Math.PI * 2);
         ctx.fill();
-        // Tail
         ctx.beginPath();
         ctx.moveTo(40, 0);
         ctx.lineTo(60, -15);
         ctx.lineTo(60, 15);
         ctx.closePath();
         ctx.fill();
-        // Fin
         ctx.beginPath();
         ctx.moveTo(0, -15);
         ctx.lineTo(-10, -35);
         ctx.lineTo(15, -15);
         ctx.closePath();
         ctx.fill();
-        // Eye
         ctx.fillStyle = '#000';
         ctx.beginPath();
         ctx.arc(-30, -5, 3, 0, Math.PI * 2);
@@ -129,18 +208,15 @@ class Saucer {
 
     drawCactus() {
         ctx.fillStyle = '#2ed573';
-        // Main body
         ctx.beginPath();
         ctx.roundRect(-15, -40, 30, 60, 15);
         ctx.fill();
         ctx.strokeStyle = '#26af5c';
         ctx.stroke();
-        // Left arm
         ctx.beginPath();
         ctx.roundRect(-30, -25, 15, 25, 7);
         ctx.fill();
         ctx.stroke();
-        // Right arm
         ctx.beginPath();
         ctx.roundRect(15, -30, 15, 25, 7);
         ctx.fill();
@@ -156,12 +232,12 @@ function init() {
     window.addEventListener('resize', resize);
 
     canvas.addEventListener('mousedown', (e) => {
-        if (gameState === 'START' || gameState === 'GAMEOVER') return;
+        if (gameState !== 'PLAYING') return;
         initAudio();
         handleInput(e.clientX, e.clientY);
     });
     canvas.addEventListener('touchstart', (e) => {
-        if (gameState === 'START' || gameState === 'GAMEOVER') return;
+        if (gameState !== 'PLAYING') return;
         initAudio();
         e.preventDefault();
         const touch = e.touches[0];
@@ -236,8 +312,6 @@ function handleInput(clientX, clientY) {
     const x = clientX - rect.left;
     const y = clientY - rect.top;
 
-    bullets--; // Bullet lost on every shot
-
     playShootSound();
 
     let hitIdx = -1;
@@ -254,19 +328,37 @@ function handleInput(clientX, clientY) {
         const s = saucers[hitIdx];
         createExplosion(s.x, s.y, s.isCorrect ? '#2ed573' : '#ff4757');
         if (s.isCorrect) {
-            bullets++; // Restore the bullet used for correct shot
-            score += 10;
-            level = Math.floor(score / 50) + 1;
+            // Proportional Scoring
+            const timeElapsed = performance.now() - s.spawnTime;
+            const percentUsed = timeElapsed / s.totalFallDuration;
+            const maxPoints = level * 10;
+            let points = maxPoints;
+
+            if (percentUsed < 0.1) {
+                points = maxPoints;
+            } else if (percentUsed > 0.9) {
+                points = Math.max(1, Math.round(maxPoints * 0.1));
+            } else {
+                const ratio = 1 - (percentUsed - 0.1) / 0.8;
+                points = Math.max(1, Math.round(maxPoints * (0.1 + 0.9 * ratio)));
+            }
+
+            score += points;
+            level = Math.floor(score / 100) + 1;
             playHitSound(true);
             setTimeout(nextEquation, 500);
             saucers = [];
         } else {
+            projectiles.push(new Projectile(s.x, s.y, player.x, player.y));
             saucers.splice(hitIdx, 1);
             playHitSound(false);
         }
+    } else {
+        // Mis-click costs a life immediately
+        bullets--;
+        updateUI();
+        if (bullets <= 0) gameOver();
     }
-
-    updateUI();
 }
 
 function createExplosion(x, y, color) {
@@ -279,6 +371,10 @@ function resize() {
     if (canvas) {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+        if (player) {
+            player.x = canvas.width / 2;
+            player.y = canvas.height - 50 - 40;
+        }
     }
 }
 
@@ -296,6 +392,8 @@ function startGame(theme) {
     bullets = 3;
     saucers = [];
     particles = [];
+    projectiles = [];
+    player = new Player();
     updateUI();
     nextEquation();
 }
@@ -364,6 +462,12 @@ function gameLoop(timestamp) {
 
 function update(dt) {
     saucers.forEach(saucer => saucer.update(dt));
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+        projectiles[i].update(dt);
+        if (projectiles[i].reached) {
+            projectiles.splice(i, 1);
+        }
+    }
     for (let i = particles.length - 1; i >= 0; i--) {
         particles[i].update(dt);
         if (particles[i].life <= 0) {
@@ -374,12 +478,13 @@ function update(dt) {
 
 function draw() {
     drawBackground();
-
     const groundColor = getComputedStyle(document.documentElement).getPropertyValue('--ground-color').trim();
     ctx.fillStyle = groundColor || '#228B22';
     ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
 
+    if (player) player.draw();
     saucers.forEach(saucer => saucer.draw());
+    projectiles.forEach(p => p.draw());
     particles.forEach(p => p.draw());
 }
 
@@ -399,7 +504,6 @@ function drawBackground() {
             ctx.fill();
         }
     } else if (currentTheme === 'desert') {
-        // Draw some sun
         ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
         ctx.beginPath();
         ctx.arc(canvas.width - 100, 100, 50, 0, Math.PI * 2);

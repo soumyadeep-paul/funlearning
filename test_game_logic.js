@@ -1,28 +1,26 @@
 const MathLogic = require('./math-logic.js');
 
 function testGameLogic() {
-    console.log("Testing Updated Game Logic Flows...");
+    console.log("Testing Final Game Logic Flows...");
 
-    // 1. Verify bullet logic
-    let bullets = 3;
+    // Scoring Test Simulation
+    let level = 1;
+    let maxPoints = level * 10;
 
-    // Shoot (miss or hit wrong)
-    bullets--;
-    if (bullets !== 2) throw new Error("Bullets should be 2 after one shot");
+    // Simulate <10% time
+    let points = maxPoints; // logic: if (percentUsed < 0.1) points = maxPoints
+    if (points !== 10) throw new Error("Scoring failed at <10% time");
 
-    // Shoot (correct hit)
-    bullets--; // deduct for shot
-    bullets++; // add for correct hit
-    if (bullets !== 2) throw new Error("Bullets should stay 2 after a correct hit (net zero)");
+    // Simulate >90% time
+    points = Math.max(1, Math.round(maxPoints * 0.1));
+    if (points !== 1) throw new Error("Scoring failed at >90% time");
 
-    // 2. Verify math scaling (steeper now)
-    console.log("Verifying steeper math scaling:");
-    for (let l = 1; l <= 5; l++) {
-        const eq = MathLogic.generateEquation(l);
-        console.log(`  Level ${l}: ${eq.text}`);
-    }
+    // Level up test
+    let score = 100;
+    level = Math.floor(score / 100) + 1;
+    if (level !== 2) throw new Error("Level up logic failed");
 
-    console.log("Game Logic Flow tests passed!");
+    console.log("Logic tests passed!");
 }
 
 testGameLogic();

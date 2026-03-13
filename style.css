@@ -53,9 +53,9 @@ canvas {
 
 #ui-layer {
     position: absolute;
-    top: 20px;
-    left: 20px;
-    right: 20px;
+    top: 10px;
+    left: 10px;
+    right: 10px;
     display: flex;
     justify-content: space-between;
     pointer-events: none;
@@ -65,15 +65,15 @@ canvas {
 #left-panel {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 5px;
 }
 
 #equation-container {
     background: var(--ui-bg);
     color: var(--text-color);
-    padding: 15px 25px;
-    border-radius: 15px;
-    font-size: 32px;
+    padding: 10px 15px;
+    border-radius: 12px;
+    font-size: 24px;
     font-weight: bold;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     border: 3px solid var(--accent-color);
@@ -82,9 +82,9 @@ canvas {
 #bullet-indicator {
     background: var(--ui-bg);
     color: var(--text-color);
-    padding: 8px 15px;
-    border-radius: 10px;
-    font-size: 18px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 16px;
     font-weight: bold;
     width: fit-content;
 }
@@ -92,30 +92,53 @@ canvas {
 #stats-container {
     background: var(--ui-bg);
     color: var(--text-color);
-    padding: 15px 20px;
-    border-radius: 15px;
-    font-size: 20px;
+    padding: 10px 15px;
+    border-radius: 12px;
+    font-size: 16px;
     text-align: right;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
 }
 
 button {
-    padding: 15px 40px;
-    font-size: 24px;
-    margin: 15px;
+    padding: 12px 30px;
+    font-size: 20px;
+    margin: 10px;
     cursor: pointer;
     border: none;
     border-radius: 50px;
     background-color: #2ed573;
     color: white;
     font-weight: bold;
-    box-shadow: 0 6px #26af5c;
+    box-shadow: 0 4px #26af5c;
     transition: all 0.1s;
 }
 
 button:active {
     box-shadow: 0 2px #26af5c;
-    transform: translateY(4px);
+    transform: translateY(2px);
+}
+
+/* Mobile Adjustments */
+@media (max-width: 600px) {
+    #equation-container {
+        font-size: 20px;
+        padding: 8px 12px;
+    }
+    #stats-container {
+        font-size: 14px;
+        padding: 8px 12px;
+    }
+    button {
+        padding: 10px 20px;
+        font-size: 18px;
+    }
+    h1 {
+        font-size: 24px;
+    }
 }
 
 /* Themes */
