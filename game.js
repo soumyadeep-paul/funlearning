@@ -14,6 +14,7 @@ let currentEquation = null;
 let lastTime = 0;
 let saucerSpeed = 1.2;
 
+
 class Particle {
     constructor(x, y, color) {
         this.x = x;
@@ -122,6 +123,7 @@ class Player {
     }
 }
 
+
 class Saucer {
     constructor(x, y, value, isCorrect) {
         this.x = x;
@@ -132,6 +134,7 @@ class Saucer {
         this.angle = 0;
         this.spawnTime = performance.now();
         this.totalFallDuration = (canvas.height - 50 - y) / saucerSpeed * 16.67;
+
     }
 
     update(dt) {
