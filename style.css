@@ -159,9 +159,59 @@ canvas {
     font-weight: bold;
 }
 
+/* Avatar Selection */
+.avatar-selection {
+    margin-bottom: 1.5rem;
+    width: 90%;
+    max-width: 500px;
+}
+
+.avatar-grid {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.avatar-option {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 10px;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 3px solid transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    width: 100px;
+}
+
+.avatar-option span {
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.avatar-option.selected {
+    background: rgba(46, 213, 115, 0.2);
+    border-color: #2ed573;
+    transform: scale(1.05);
+}
+
+.avatar-preview {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #ccc;
+}
+
+.avatar-preview.cool-kid { background: #ff9f43; }
+.avatar-preview.space-scout { background: #54a0ff; }
+.avatar-preview.deep-diver { background: #1dd1a1; }
+
 /* Form Elements */
 .input-group {
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
 }
 
 input[type="text"] {

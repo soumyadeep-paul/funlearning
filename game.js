@@ -6,6 +6,7 @@ let currentTheme = 'sky';
 let level = 1;
 let score = 0;
 let bullets = 3; // Now represents Lives
+let selectedAvatar = 'cool-kid';
 let playerName = 'Player';
 let totalCorrect = 0;
 let currentStreak = 0;
@@ -146,10 +147,10 @@ class Projectile {
         this.y = y;
         this.targetX = targetX;
         this.targetY = targetY;
-        this.speed = 8;
-        const angle = Math.atan2(targetY - y, targetX - x);
-        this.vx = Math.cos(angle) * this.speed;
-        this.vy = Math.sin(angle) * this.speed;
+        this.speed = 6;
+        this.angle = Math.atan2(targetY - y, targetX - x);
+        this.vx = Math.cos(this.angle) * this.speed;
+        this.vy = Math.sin(this.angle) * this.speed;
         this.reached = false;
     }
 
@@ -159,9 +160,9 @@ class Projectile {
         this.y += this.vy * factor;
 
         const dist = Math.sqrt((this.x - this.targetX) ** 2 + (this.y - this.targetY) ** 2);
-        if (dist < 15) {
+        if (dist < 20) {
             this.reached = true;
-            createExplosion(this.x, this.y, '#ff4757');
+            createRichExplosion(this.x, this.y);
             bullets--;
             updateUI();
             if (bullets <= 0) {
@@ -173,12 +174,31 @@ class Projectile {
     draw() {
         ctx.save();
         ctx.translate(this.x, this.y);
-        ctx.fillStyle = '#576574';
+        ctx.rotate(this.angle);
+
+        // Bazooka Rocket
+        ctx.fillStyle = '#2f3542';
         ctx.beginPath();
-        ctx.arc(0, 0, 12, 0, Math.PI * 2);
+        ctx.roundRect(-20, -10, 30, 20, 5);
         ctx.fill();
-        ctx.strokeStyle = '#2f3542';
-        ctx.stroke();
+
+        ctx.fillStyle = '#ff4757';
+        ctx.beginPath();
+        ctx.moveTo(10, -10);
+        ctx.lineTo(25, 0);
+        ctx.lineTo(10, 10);
+        ctx.closePath();
+        ctx.fill();
+
+        // Rocket exhaust
+        const offset = (Date.now() / 50) % 5;
+        ctx.fillStyle = '#f1c40f';
+        ctx.beginPath();
+        ctx.moveTo(-20, -5);
+        ctx.lineTo(-30 - offset, 0);
+        ctx.lineTo(-20, 5);
+        ctx.fill();
+
         ctx.restore();
     }
 }
@@ -189,31 +209,68 @@ class Player {
         this.height = 80;
         this.x = canvas.width / 2;
         this.y = canvas.height - 50 - 40;
+        this.avatar = selectedAvatar;
     }
 
     draw() {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Character
-        ctx.fillStyle = '#ff9f43';
+        const time = Date.now() / 200;
+        const bounce = Math.sin(time) * 3;
+
+        // Base color based on avatar
+        let bodyColor = '#ff9f43';
+        if (this.avatar === 'space-scout') bodyColor = '#54a0ff';
+        if (this.avatar === 'deep-diver') bodyColor = '#1dd1a1';
+
+        // Animated Hair (Flying)
+        ctx.fillStyle = '#2d3436';
+        if (this.avatar === 'space-scout') ctx.fillStyle = '#dfe4ea';
+        for(let i=0; i<3; i++) {
+            const hairOffset = Math.sin(time + i) * 5;
+            ctx.beginPath();
+            ctx.ellipse(-15 + i*15, -55 + hairOffset, 10, 15, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Body
+        ctx.fillStyle = bodyColor;
         ctx.beginPath();
-        ctx.roundRect(-20, -30, 40, 50, 10);
-        ctx.fill();
-        ctx.fillStyle = '#ffdbac';
-        ctx.beginPath();
-        ctx.arc(0, -45, 15, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#000';
-        ctx.beginPath();
-        ctx.arc(-5, -48, 2, 0, Math.PI * 2);
-        ctx.arc(5, -48, 2, 0, Math.PI * 2);
+        ctx.roundRect(-20, -30 + bounce, 40, 50, 10);
         ctx.fill();
 
-        if (currentTheme === 'underwater') {
-            ctx.fillStyle = '#54a0ff';
+        // Head
+        ctx.fillStyle = '#ffdbac';
+        ctx.beginPath();
+        ctx.arc(0, -45 + bounce, 18, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Shining Glasses
+        const shine = Math.abs(Math.sin(time)) * 0.5 + 0.5;
+        ctx.fillStyle = `rgba(45, 52, 54, 1)`;
+        ctx.beginPath();
+        ctx.roundRect(-15, -52 + bounce, 30, 8, 4);
+        ctx.fill();
+
+        ctx.strokeStyle = `rgba(255, 255, 255, ${shine})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-10, -50 + bounce);
+        ctx.lineTo(-2, -50 + bounce);
+        ctx.stroke();
+
+        // Eyes
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(-6, -45 + bounce, 2, 0, Math.PI * 2);
+        ctx.arc(6, -45 + bounce, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (this.avatar === 'deep-diver') {
+            ctx.fillStyle = 'rgba(0, 168, 255, 0.4)';
             ctx.beginPath();
-            ctx.arc(0, -50, 18, Math.PI, 0);
+            ctx.arc(0, -45 + bounce, 22, 0, Math.PI * 2);
             ctx.fill();
         }
 
@@ -444,9 +501,6 @@ function handleInput(clientX, clientY) {
             currentStreak++;
             if (currentStreak > longestStreak) longestStreak = currentStreak;
 
-            // Refill lives on correct answer (max 3)
-            if (bullets < 3) bullets++;
-
             const newLevel = Math.floor(score / 100) + 1;
             if (newLevel > level) {
                 showLevelUp();
@@ -484,6 +538,19 @@ function createExplosion(x, y, color) {
     }
 }
 
+function createRichExplosion(x, y) {
+    const colors = ['#ff4757', '#ff6b6b', '#f1c40f', '#e67e22', '#ffffff'];
+    for (let i = 0; i < 50; i++) {
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const p = new Particle(x, y, color);
+        p.size = 4 + Math.random() * 8;
+        p.vx = (Math.random() - 0.5) * 20;
+        p.vy = (Math.random() - 0.5) * 20;
+        p.life = 1 + Math.random();
+        particles.push(p);
+    }
+}
+
 function createCelebrationStars(x, y) {
     const colors = ['#f1c40f', '#fff', '#f39c12', '#fbc531'];
     for (let i = 0; i < 40; i++) {
@@ -513,6 +580,17 @@ function resize() {
             player.y = canvas.height - 50 - 40;
         }
     }
+}
+
+function selectAvatar(avatar) {
+    selectedAvatar = avatar;
+    const options = document.querySelectorAll('.avatar-option');
+    options.forEach(opt => {
+        opt.classList.remove('selected');
+        if (opt.getAttribute('data-avatar') === avatar) {
+            opt.classList.add('selected');
+        }
+    });
 }
 
 function startGame(theme) {

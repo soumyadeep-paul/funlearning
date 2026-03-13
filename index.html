@@ -13,6 +13,25 @@
             <div class="input-group">
                 <input type="text" id="player-name" placeholder="Enter Your Name" maxlength="12">
             </div>
+
+            <div class="avatar-selection">
+                <p>Choose Your Hero:</p>
+                <div class="avatar-grid">
+                    <div class="avatar-option selected" data-avatar="cool-kid" onclick="selectAvatar('cool-kid')">
+                        <div class="avatar-preview cool-kid"></div>
+                        <span>Cool Kid</span>
+                    </div>
+                    <div class="avatar-option" data-avatar="space-scout" onclick="selectAvatar('space-scout')">
+                        <div class="avatar-preview space-scout"></div>
+                        <span>Space Scout</span>
+                    </div>
+                    <div class="avatar-option" data-avatar="deep-diver" onclick="selectAvatar('deep-diver')">
+                        <div class="avatar-preview deep-diver"></div>
+                        <span>Deep Diver</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="theme-selection">
                 <button class="btn-theme sky" onclick="startGame('sky')">Sky Adventure</button>
                 <button class="btn-theme underwater" onclick="startGame('underwater')">Deep Sea</button>
