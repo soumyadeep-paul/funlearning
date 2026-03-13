@@ -210,7 +210,8 @@ class Player {
         this.width = 60;
         this.height = 80;
         this.x = canvas.width / 2;
-        this.y = canvas.height - 50 - 40;
+        const groundHeight = window.innerWidth < 600 ? 80 : 100;
+        this.y = canvas.height - groundHeight - 40;
         this.avatar = selectedAvatar;
         this.hurtTime = 0;
     }
@@ -349,14 +350,16 @@ class Saucer {
         this.radius = 40;
         this.angle = 0;
         this.spawnTime = performance.now();
-        this.totalFallDuration = (canvas.height - 50 - y) / saucerSpeed * 16.67;
+        const groundHeight = window.innerWidth < 600 ? 80 : 100;
+        this.totalFallDuration = (canvas.height - groundHeight - y) / saucerSpeed * 16.67;
     }
 
     update(dt) {
         const factor = dt / 16.67;
         this.y += saucerSpeed * factor;
         this.angle += 0.05 * factor;
-        if (this.y > canvas.height - 50) {
+        const groundHeight = window.innerWidth < 600 ? 80 : 100;
+        if (this.y > canvas.height - groundHeight) {
             gameOver();
         }
     }
@@ -646,7 +649,8 @@ function resize() {
         canvas.height = window.innerHeight;
         if (player) {
             player.x = canvas.width / 2;
-            player.y = canvas.height - 50 - 40;
+            const groundHeight = window.innerWidth < 600 ? 80 : 100;
+            player.y = canvas.height - groundHeight - 40;
         }
     }
 }
@@ -819,7 +823,8 @@ function draw() {
     backgrounds.forEach(bg => bg.draw());
     const groundColor = getComputedStyle(document.documentElement).getPropertyValue('--ground-color').trim();
     ctx.fillStyle = groundColor || '#228B22';
-    ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+    const groundHeight = window.innerWidth < 600 ? 80 : 100;
+    ctx.fillRect(0, canvas.height - groundHeight, canvas.width, groundHeight);
 
     if (player) player.draw();
     saucers.forEach(saucer => saucer.draw());

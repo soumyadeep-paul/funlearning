@@ -60,19 +60,21 @@
         <div id="level-up-overlay" class="level-up-msg hidden">LEVEL UP!</div>
 
         <div id="ui-layer">
-            <div id="left-panel">
-                <div id="equation-container">
-                    <div id="equation-text">? + ? = ?</div>
+            <div id="hud-bottom-bar">
+                <div class="hud-group" id="hud-lives">
+                    <div id="lives-container"></div>
                 </div>
-                <div id="lives-container">
-                    <!-- Heart icons will be injected here -->
+                <div class="hud-group" id="hud-equation">
+                    <div id="equation-container">
+                        <div id="equation-text">? + ? = ?</div>
+                    </div>
                 </div>
-            </div>
-            <div id="stats-container">
+                <div class="hud-group" id="hud-stats">
+                    <div class="hud-item">Score: <span id="score-val">0</span></div>
+                    <div class="hud-item">Level: <span id="level-val">1</span></div>
+                    <div id="player-display"></div>
+                </div>
                 <button id="pause-btn" style="pointer-events: auto;" onclick="togglePause()">Pause</button>
-                <div class="hud-item">Level: <span id="level-val">1</span></div>
-                <div class="hud-item">Score: <span id="score-val">0</span></div>
-                <div id="player-display"></div>
             </div>
         </div>
 
