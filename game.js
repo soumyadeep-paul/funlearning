@@ -236,36 +236,61 @@ function drawAvatar(context, x, y, type, time, hurt) {
 
     const bounce = Math.sin(time) * 3;
 
-    // Superhero Cape
-    let capeColor = '#ff4757';
-    if (type === 'cosmo-blue') capeColor = '#341f97';
-    if (type === 'aqua-green') capeColor = '#01a3a4';
+    if (type === 'super-red') {
+        // Classic Cape Hero
+        context.fillStyle = '#ff4757';
+        context.beginPath();
+        const capeWobble = Math.sin(time * 0.5) * 10;
+        context.moveTo(-20, -20 + bounce);
+        context.lineTo(-40 - capeWobble, 30 + bounce);
+        context.lineTo(40 + capeWobble, 30 + bounce);
+        context.lineTo(20, -20 + bounce);
+        context.closePath();
+        context.fill();
 
-    context.fillStyle = capeColor;
-    context.beginPath();
-    const capeWobble = Math.sin(time * 0.5) * 10;
-    context.moveTo(-20, -20 + bounce);
-    context.lineTo(-40 - capeWobble, 30 + bounce);
-    context.lineTo(40 + capeWobble, 30 + bounce);
-    context.lineTo(20, -20 + bounce);
-    context.closePath();
-    context.fill();
+        context.fillStyle = '#ee5253';
+        context.beginPath();
+        context.roundRect(-20, -30 + bounce, 40, 50, 10);
+        context.fill();
 
-    // Body
-    let bodyColor = '#ee5253';
-    if (type === 'cosmo-blue') bodyColor = '#54a0ff';
-    if (type === 'aqua-green') bodyColor = '#1dd1a1';
+        context.fillStyle = '#f1c40f';
+        context.beginPath();
+        context.arc(0, -10 + bounce, 8, 0, Math.PI * 2);
+        context.fill();
+    } else if (type === 'cosmo-blue') {
+        // Robo/Armor Hero
+        context.fillStyle = '#341f97';
+        context.fillRect(-22, -25 + bounce, 44, 40);
+        context.fillStyle = '#54a0ff';
+        context.fillRect(-18, -20 + bounce, 36, 30);
 
-    context.fillStyle = bodyColor;
-    context.beginPath();
-    context.roundRect(-20, -30 + bounce, 40, 50, 10);
-    context.fill();
+        // Glowing shoulder pads
+        context.fillStyle = '#00d2ff';
+        context.beginPath();
+        context.arc(-22, -22 + bounce, 8, 0, Math.PI * 2);
+        context.arc(22, -22 + bounce, 8, 0, Math.PI * 2);
+        context.fill();
+    } else if (type === 'aqua-green') {
+        // Elemental/Nature Hero
+        context.fillStyle = '#01a3a4';
+        context.beginPath();
+        context.moveTo(0, 30 + bounce);
+        context.lineTo(-25, -20 + bounce);
+        context.lineTo(25, -20 + bounce);
+        context.closePath();
+        context.fill();
 
-    // Emblem
-    context.fillStyle = '#f1c40f';
-    context.beginPath();
-    context.arc(0, -10 + bounce, 8, 0, Math.PI * 2);
-    context.fill();
+        context.fillStyle = '#1dd1a1';
+        context.beginPath();
+        context.arc(0, -10 + bounce, 20, 0, Math.PI * 2);
+        context.fill();
+
+        // Leaf emblem
+        context.fillStyle = '#10ac84';
+        context.beginPath();
+        context.ellipse(0, -10 + bounce, 5, 12, Math.PI/4, 0, Math.PI*2);
+        context.fill();
+    }
 
     // Head
     context.fillStyle = '#ffdbac';
@@ -274,13 +299,11 @@ function drawAvatar(context, x, y, type, time, hurt) {
     context.fill();
 
     if (hurt) {
-        // Red overlay when hurt
         context.fillStyle = 'rgba(255, 0, 0, 0.3)';
         context.beginPath();
         context.arc(0, -45 + bounce, 18, 0, Math.PI * 2);
         context.fill();
 
-        // Dizzy Eyes
         context.strokeStyle = '#000';
         context.lineWidth = 2;
         for (let eyeX of [-6, 6]) {
@@ -292,13 +315,20 @@ function drawAvatar(context, x, y, type, time, hurt) {
             context.stroke();
         }
     } else {
-        // Superhero Mask
-        context.fillStyle = capeColor;
-        context.beginPath();
-        context.roundRect(-18, -52 + bounce, 36, 12, 5);
-        context.fill();
+        // Mask specific to hero
+        let maskColor = '#ff4757';
+        if (type === 'cosmo-blue') maskColor = '#341f97';
+        if (type === 'aqua-green') maskColor = '#01a3a4';
 
-        // Shining White Eyes in mask
+        context.fillStyle = maskColor;
+        if (type === 'cosmo-blue') {
+            context.fillRect(-18, -55 + bounce, 36, 15);
+        } else {
+            context.beginPath();
+            context.roundRect(-18, -52 + bounce, 36, 12, 5);
+            context.fill();
+        }
+
         const shine = Math.abs(Math.sin(time)) * 0.5 + 0.5;
         context.fillStyle = `rgba(255, 255, 255, ${shine})`;
         context.beginPath();
@@ -564,6 +594,7 @@ function handleInput(clientX, clientY) {
     } else {
         // Mis-click costs a life immediately
         bullets--;
+        if (player) player.hurtTime = 500;
         currentStreak = 0;
         updateUI();
         if (bullets <= 0) gameOver();
@@ -623,11 +654,15 @@ function resize() {
 function setTheme(theme) {
     selectedTheme = theme;
     document.querySelectorAll('.btn-theme-small').forEach(btn => btn.classList.remove('active'));
-    if (theme === 'underwater') document.getElementById('btn-underwater').classList.add('active');
-    else {
-        // Find by class if ID not specific enough
-        document.querySelector(`.btn-theme-small.${theme}`).classList.add('active');
+    if (theme === 'underwater') {
+        const btn = document.getElementById('btn-underwater');
+        if (btn) btn.classList.add('active');
+    } else {
+        const btn = document.querySelector(`.btn-theme-small.${theme}`);
+        if (btn) btn.classList.add('active');
     }
+    // Update body class for home screen preview
+    document.body.className = 'theme-' + theme;
 }
 
 function selectAvatar(avatar) {
