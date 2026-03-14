@@ -5,7 +5,7 @@ let gameState = 'START'; // START, PLAYING, GAMEOVER, PAUSED
 let currentTheme = 'sky';
 let level = 1;
 let score = 0;
-let bullets = 3; // Now represents Lives
+let lives = 3;
 let selectedAvatar = 'super-red';
 let selectedTheme = 'underwater';
 let playerName = 'Player';
@@ -14,55 +14,197 @@ let currentStreak = 0;
 let longestStreak = 0;
 let saucers = [];
 let particles = [];
-let projectiles = [];
+let projectiles = []; // Enemy projectiles
+let playerProjectiles = [];
 let backgrounds = [];
 let player = null;
 let currentEquation = null;
 let lastTime = 0;
 let saucerSpeed = 1.2;
 
+function getGroundHeight() {
+    const hud = document.getElementById('ui-layer');
+    const height = hud ? hud.offsetHeight : (window.innerWidth < 600 ? 80 : 100);
+    return Math.max(height, 40);
+}
+
 class BackgroundElement {
-    constructor(type) {
-        this.type = type;
+    constructor() {
+        this.init();
+    }
+    init() {
+        this.theme = currentTheme;
+        this.type = this.pickType();
         this.reset();
+        // Randomize initial position
+        this.x = Math.random() * canvas.width;
+        if (this.type !== 'seaweed' && this.type !== 'ray') {
+            this.y = Math.random() * canvas.height;
+        }
+    }
+    pickType() {
+        const r = Math.random();
+        if (currentTheme === 'underwater') {
+            if (r < 0.3) return 'bubble';
+            if (r < 0.6) return 'seaweed';
+            if (r < 0.8) return 'fish';
+            if (r < 0.9) return 'ray';
+            return 'starfish';
+        } else if (currentTheme === 'sky') {
+            if (r < 0.8) return 'cloud';
+            return 'bird';
+        } else {
+            if (r < 0.4) return 'sand';
+            if (r < 0.7) return 'tumbleweed';
+            if (r < 0.9) return 'cactus-bg';
+            return 'rock';
+        }
     }
     reset() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
-        this.vx = (Math.random() - 0.5) * 1;
-        this.vy = (Math.random() - 0.5) * 1;
         this.size = 20 + Math.random() * 40;
-        if (currentTheme === 'underwater') {
-            this.vy = -(0.5 + Math.random() * 1.5); // Bubbles go up
+        this.vx = 0;
+        this.vy = 0;
+        this.rotation = 0;
+        this.rotSpeed = (Math.random() - 0.5) * 0.05;
+        this.opacity = 0.2 + Math.random() * 0.3;
+
+        if (this.type === 'bubble') {
             this.vx = (Math.random() - 0.5) * 0.5;
-            this.y = canvas.height + Math.random() * 100;
-        } else if (currentTheme === 'sky') {
-            this.vx = 0.5 + Math.random() * 1; // Clouds drift right
-            this.vy = 0;
-            this.x = -100 - Math.random() * 500;
+            this.vy = -(1 + Math.random() * 2);
+            this.x = Math.random() * canvas.width;
+            this.y = canvas.height + 50;
+        } else if (this.type === 'seaweed') {
+            this.x = Math.random() * canvas.width;
+            this.y = canvas.height;
+            this.swayOffset = Math.random() * Math.PI * 2;
+            this.height = 60 + Math.random() * 100;
+        } else if (this.type === 'fish') {
+            this.vx = (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random() * 2);
+            this.x = this.vx > 0 ? -100 : canvas.width + 100;
+            this.y = Math.random() * (canvas.height - 200);
+            this.color = `hsl(${200 + Math.random() * 40}, 50%, 50%)`;
+        } else if (this.type === 'ray') {
+            this.x = Math.random() * canvas.width;
+            this.y = 0;
+            this.angle = 0.2 + Math.random() * 0.4;
+            this.width = 50 + Math.random() * 100;
+        } else if (this.type === 'starfish') {
+            this.x = Math.random() * canvas.width;
+            this.y = canvas.height - getGroundHeight() - 5;
+            this.color = '#ff6b6b';
+        } else if (this.type === 'cloud') {
+            this.vx = 0.5 + Math.random() * 1;
+            this.x = -200 - Math.random() * 500;
+            this.y = Math.random() * (canvas.height * 0.6);
+        } else if (this.type === 'bird') {
+            this.vx = 2 + Math.random() * 2;
+            this.x = -100;
+            this.y = 50 + Math.random() * 200;
+            this.wingPhase = 0;
+        } else if (this.type === 'sand') {
+            this.vx = -(1 + Math.random() * 2);
+            this.x = canvas.width + 100;
+            this.y = Math.random() * canvas.height;
+        } else if (this.type === 'tumbleweed') {
+            this.vx = -(2 + Math.random() * 3);
+            this.x = canvas.width + 100;
+            this.y = canvas.height - getGroundHeight() - 20;
+        } else if (this.type === 'cactus-bg' || this.type === 'rock') {
+            this.x = Math.random() * canvas.width;
+            this.y = canvas.height - getGroundHeight();
         }
     }
     update(dt) {
+        if (this.theme !== currentTheme) {
+            this.init();
+            return;
+        }
         const factor = dt / 16.67;
         this.x += this.vx * factor;
         this.y += this.vy * factor;
+        this.rotation += this.rotSpeed * factor;
+        if (this.type === 'bird') this.wingPhase += 0.2 * factor;
 
-        if (this.x > canvas.width + 200 || this.x < -200 || this.y > canvas.height + 200 || this.y < -200) {
-            this.reset();
-        }
+        if (this.type === 'bubble' && this.y < -50) this.reset();
+        if (this.type === 'fish' && (this.x > canvas.width + 200 || this.x < -200)) this.reset();
+        if (this.type === 'cloud' && this.x > canvas.width + 300) this.reset();
+        if (this.type === 'bird' && this.x > canvas.width + 100) this.reset();
+        if ((this.type === 'sand' || this.type === 'tumbleweed') && this.x < -200) this.reset();
     }
     draw() {
         ctx.save();
-        ctx.globalAlpha = 0.4;
-        ctx.fillStyle = '#fff';
-        if (currentTheme === 'sky') {
+        ctx.globalAlpha = this.opacity;
+        if (this.type === 'bubble') {
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size / 4, 0, Math.PI * 2);
+            ctx.stroke();
+        } else if (this.type === 'seaweed') {
+            this.drawSeaweed();
+        } else if (this.type === 'fish') {
+            this.drawFish();
+        } else if (this.type === 'ray') {
+            this.drawRay();
+        } else if (this.type === 'starfish') {
+            this.drawStarfish();
+        } else if (this.type === 'cloud') {
+            ctx.fillStyle = '#fff';
             this.drawCloud();
-        } else if (currentTheme === 'underwater') {
-            this.drawBubble();
-        } else if (currentTheme === 'desert') {
-            this.drawSand();
+        } else if (this.type === 'bird') {
+            this.drawBird();
+        } else if (this.type === 'sand') {
+            ctx.fillStyle = 'rgba(210, 180, 140, 0.5)';
+            ctx.beginPath();
+            ctx.ellipse(this.x, this.y, this.size, this.size / 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (this.type === 'tumbleweed') {
+            this.drawTumbleweed();
+        } else if (this.type === 'cactus-bg') {
+            this.drawCactusBG();
+        } else if (this.type === 'rock') {
+            this.drawRock();
         }
         ctx.restore();
+    }
+    drawSeaweed() {
+        ctx.strokeStyle = '#10ac84';
+        ctx.lineWidth = 8;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        const gh = getGroundHeight();
+        ctx.moveTo(this.x, canvas.height - gh);
+        for (let i = 0; i < this.height; i += 10) {
+            const sway = Math.sin(Date.now() / 1000 + this.swayOffset + i / 50) * (i / 10);
+            ctx.lineTo(this.x + sway, canvas.height - gh - i);
+        }
+        ctx.stroke();
+    }
+    drawFish() {
+        ctx.fillStyle = this.color || '#fff';
+        ctx.beginPath();
+        ctx.ellipse(this.x, this.y, 15, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        const tailDir = this.vx > 0 ? -1 : 1;
+        ctx.moveTo(this.x + tailDir * 12, this.y);
+        ctx.lineTo(this.x + tailDir * 22, this.y - 8);
+        ctx.lineTo(this.x + tailDir * 22, this.y + 8);
+        ctx.closePath();
+        ctx.fill();
+    }
+    drawRay() {
+        const gradient = ctx.createLinearGradient(this.x, 0, this.x + Math.sin(this.angle) * 500, 500);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.moveTo(this.x - this.width / 2, 0);
+        ctx.lineTo(this.x + this.width / 2, 0);
+        ctx.lineTo(this.x + this.width / 2 + 200, canvas.height);
+        ctx.lineTo(this.x - this.width / 2 + 200, canvas.height);
+        ctx.closePath();
+        ctx.fill();
     }
     drawCloud() {
         ctx.beginPath();
@@ -71,18 +213,55 @@ class BackgroundElement {
         ctx.arc(this.x + this.size * 1.2, this.y, this.size * 0.7, 0, Math.PI * 2);
         ctx.fill();
     }
-    drawBubble() {
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
+    drawBird() {
+        ctx.strokeStyle = '#2f3542';
+        ctx.lineWidth = 3;
+        const flap = Math.sin(this.wingPhase) * 10;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size / 4, 0, Math.PI * 2);
+        ctx.moveTo(this.x - 15, this.y + flap);
+        ctx.quadraticCurveTo(this.x - 7, this.y - 10, this.x, this.y);
+        ctx.quadraticCurveTo(this.x + 7, this.y - 10, this.x + 15, this.y + flap);
         ctx.stroke();
     }
-    drawSand() {
-        ctx.fillStyle = 'rgba(210, 180, 140, 0.3)';
+    drawStarfish() {
+        ctx.fillStyle = this.color;
+        const spikes = 5;
+        const outer = 10;
+        const inner = 5;
         ctx.beginPath();
-        ctx.ellipse(this.x, this.y, this.size, this.size / 4, 0, 0, Math.PI * 2);
+        for (let i = 0; i < spikes * 2; i++) {
+            const r = i % 2 === 0 ? outer : inner;
+            const a = (i * Math.PI) / spikes;
+            ctx.lineTo(this.x + Math.cos(a) * r, this.y + Math.sin(a) * r);
+        }
+        ctx.closePath();
         ctx.fill();
+    }
+    drawCactusBG() {
+        ctx.fillStyle = '#26af5c';
+        ctx.beginPath();
+        ctx.roundRect(this.x - 5, this.y - 20, 10, 20, 5);
+        ctx.fill();
+    }
+    drawRock() {
+        ctx.fillStyle = '#7f8c8d';
+        ctx.beginPath();
+        ctx.ellipse(this.x, this.y, 15, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    drawTumbleweed() {
+        ctx.strokeStyle = '#d35400';
+        ctx.lineWidth = 2;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        for (let i = 0; i < 8; i++) {
+            ctx.rotate(Math.PI / 4);
+            ctx.beginPath();
+            ctx.ellipse(0, 0, this.size / 2, this.size / 4, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        ctx.restore();
     }
 }
 
@@ -164,12 +343,10 @@ class Projectile {
         if (dist < 20) {
             this.reached = true;
             createRichExplosion(this.x, this.y);
-            bullets--;
+            lives--;
             if (player) player.hurtTime = 500;
             updateUI();
-            if (bullets <= 0) {
-                gameOver();
-            }
+            if (lives <= 0) gameOver();
         }
     }
 
@@ -209,21 +386,76 @@ class Player {
     constructor() {
         this.width = 60;
         this.height = 80;
-        this.x = canvas.width / 2;
-        const groundHeight = window.innerWidth < 600 ? 80 : 100;
+        this.x = canvas.width * 0.15;
+        const groundHeight = getGroundHeight();
         this.y = canvas.height - groundHeight - 40;
         this.avatar = selectedAvatar;
         this.hurtTime = 0;
+        this.shootFlash = 0;
     }
 
     update(dt) {
         if (this.hurtTime > 0) this.hurtTime -= dt;
+        if (this.shootFlash > 0) this.shootFlash -= dt;
     }
 
     draw() {
         const time = Date.now() / 200;
         const hurt = this.hurtTime > 0;
+
+        if (this.shootFlash > 0) {
+            ctx.save();
+            ctx.beginPath();
+            const grad = ctx.createRadialGradient(this.x, this.y - 40, 0, this.x, this.y - 40, 60);
+            grad.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+            grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = grad;
+            ctx.arc(this.x, this.y - 40, 60, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
         drawAvatar(ctx, this.x, this.y, this.avatar, time, hurt);
+    }
+}
+
+class PlayerProjectile {
+    constructor(x, y, tx, ty, onHit) {
+        this.x = x;
+        this.y = y;
+        this.tx = tx;
+        this.ty = ty;
+        this.onHit = onHit;
+        this.speed = 25;
+        this.angle = Math.atan2(ty - y, tx - x);
+        this.vx = Math.cos(this.angle) * this.speed;
+        this.vy = Math.sin(this.angle) * this.speed;
+        this.dead = false;
+    }
+    update(dt) {
+        const factor = dt / 16.67;
+        this.x += this.vx * factor;
+        this.y += this.vy * factor;
+        const dist = Math.sqrt((this.x - this.tx)**2 + (this.y - this.ty)**2);
+        if (dist < 30) {
+            this.dead = true;
+            if (this.onHit) this.onHit();
+        }
+    }
+    draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+        ctx.fillStyle = '#f1c40f';
+        ctx.beginPath();
+        ctx.roundRect(-15, -4, 30, 8, 4);
+        ctx.fill();
+        // Inner glow
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.roundRect(-10, -2, 20, 4, 2);
+        ctx.fill();
+        ctx.restore();
     }
 }
 
@@ -350,16 +582,16 @@ class Saucer {
         this.radius = 40;
         this.angle = 0;
         this.spawnTime = performance.now();
-        const groundHeight = window.innerWidth < 600 ? 80 : 100;
-        this.totalFallDuration = (canvas.height - groundHeight - y) / saucerSpeed * 16.67;
+        const gh = getGroundHeight();
+        this.totalFallDuration = (canvas.height - gh - y) / saucerSpeed * 16.67;
     }
 
     update(dt) {
         const factor = dt / 16.67;
         this.y += saucerSpeed * factor;
         this.angle += 0.05 * factor;
-        const groundHeight = window.innerWidth < 600 ? 80 : 100;
-        if (this.y > canvas.height - groundHeight) {
+        const gh = getGroundHeight();
+        if (this.y > canvas.height - gh) {
             gameOver();
         }
     }
@@ -452,6 +684,10 @@ function init() {
     // Default theme
     setTheme('underwater');
 
+    // Initialize backgrounds for preview
+    backgrounds = [];
+    for(let i=0; i<20; i++) backgrounds.push(new BackgroundElement());
+
     // Start home screen preview loops
     requestAnimationFrame(previewLoop);
 
@@ -530,78 +766,87 @@ function playGameOverSound() {
 
 function handleInput(clientX, clientY) {
     if (gameState !== 'PLAYING') return;
-    if (bullets <= 0) return;
+
+    if (lives <= 0) return;
 
     const rect = canvas.getBoundingClientRect();
     const x = clientX - rect.left;
     const y = clientY - rect.top;
 
     playShootSound();
+    if (player) player.shootFlash = 100;
 
     let hitIdx = -1;
     for (let i = saucers.length - 1; i >= 0; i--) {
         const s = saucers[i];
         const dist = Math.sqrt((x - s.x) ** 2 + (y - (s.y + Math.sin(s.angle)*5)) ** 2);
-        if (dist < s.radius + 10) {
+        if (dist < s.radius + 15) {
             hitIdx = i;
             break;
         }
     }
 
-    if (hitIdx !== -1) {
-        const s = saucers[hitIdx];
-        if (s.isCorrect) {
-            createCelebrationStars(s.x, s.y);
-            // Proportional Scoring - Constant base points to avoid level-up spam
-            const timeElapsed = performance.now() - s.spawnTime;
-            const percentUsed = timeElapsed / s.totalFallDuration;
-            const basePoints = 10; // Fixed base instead of level * 10
-            let points = basePoints;
+    // Spawn player projectile
+    const targetX = hitIdx !== -1 ? saucers[hitIdx].x : x;
+    const targetY = hitIdx !== -1 ? (saucers[hitIdx].y + Math.sin(saucers[hitIdx].angle)*5) : y;
 
-            if (percentUsed < 0.1) {
-                points = basePoints;
-            } else if (percentUsed > 0.9) {
-                points = Math.max(1, Math.round(basePoints * 0.1));
-            } else {
-                const ratio = 1 - (percentUsed - 0.1) / 0.8;
-                points = Math.max(1, Math.round(basePoints * (0.1 + 0.9 * ratio)));
-            }
-
-            score += points;
-            totalCorrect++;
-            currentStreak++;
-            if (currentStreak > longestStreak) longestStreak = currentStreak;
-
-            const newLevel = Math.floor(score / 100) + 1;
-            if (newLevel > level) {
-                showLevelUp();
-            }
-            level = newLevel;
-
-            playHitSound(true);
-
-            // Clear saucers and set a temporary flag to ignore mis-clicks during transition
-            saucers = [];
-            gameState = 'TRANSITION';
-            setTimeout(() => {
-                if (gameState === 'TRANSITION') gameState = 'PLAYING';
-                nextEquation();
-            }, 500);
-        } else {
-            createExplosion(s.x, s.y, '#ff4757');
-            projectiles.push(new Projectile(s.x, s.y, player.x, player.y));
-            saucers.splice(hitIdx, 1);
-            playHitSound(false);
-            currentStreak = 0;
+    playerProjectiles.push(new PlayerProjectile(player.x, player.y - 40, targetX, targetY, () => {
+        if (hitIdx !== -1 && saucers[hitIdx]) {
+            processHit(hitIdx);
+        } else if (hitIdx === -1) {
+            createExplosion(targetX, targetY, '#ffffff');
+            // Mis-click penalty
+            lives--;
+            if (player) player.hurtTime = 500;
+            updateUI();
+            if (lives <= 0) gameOver();
         }
+    }));
+
+    updateUI();
+}
+
+function processHit(idx) {
+    const s = saucers[idx];
+    if (!s) return;
+
+    if (s.isCorrect) {
+        createCelebrationStars(s.x, s.y);
+        const timeElapsed = performance.now() - s.spawnTime;
+        const percentUsed = timeElapsed / s.totalFallDuration;
+        const basePoints = 10;
+        let points = basePoints;
+
+        if (percentUsed < 0.1) points = basePoints;
+        else if (percentUsed > 0.9) points = Math.max(1, Math.round(basePoints * 0.1));
+        else {
+            const ratio = 1 - (percentUsed - 0.1) / 0.8;
+            points = Math.max(1, Math.round(basePoints * (0.1 + 0.9 * ratio)));
+        }
+
+        score += points;
+        totalCorrect++;
+        currentStreak++;
+        if (currentStreak > longestStreak) longestStreak = currentStreak;
+        const newLevel = Math.floor(score / 100) + 1;
+        if (newLevel > level) showLevelUp();
+        level = newLevel;
+        playHitSound(true);
+
+        saucers = [];
+        gameState = 'TRANSITION';
+        setTimeout(() => {
+            if (gameState === 'TRANSITION') gameState = 'PLAYING';
+            nextEquation();
+        }, 500);
     } else {
-        // Mis-click costs a life immediately
-        bullets--;
-        if (player) player.hurtTime = 500;
+        createExplosion(s.x, s.y, '#ff4757');
+        projectiles.push(new Projectile(s.x, s.y, player.x, player.y));
+        saucers.splice(idx, 1);
+        playHitSound(false);
         currentStreak = 0;
-        updateUI();
-        if (bullets <= 0) gameOver();
     }
+    updateUI();
 }
 
 function createExplosion(x, y, color) {
@@ -648,8 +893,8 @@ function resize() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         if (player) {
-            player.x = canvas.width / 2;
-            const groundHeight = window.innerWidth < 600 ? 80 : 100;
+            player.x = canvas.width * 0.15;
+            const groundHeight = getGroundHeight();
             player.y = canvas.height - groundHeight - 40;
         }
     }
@@ -657,6 +902,7 @@ function resize() {
 
 function setTheme(theme) {
     selectedTheme = theme;
+    currentTheme = theme; // Update currentTheme so background preview changes
     document.querySelectorAll('.btn-theme-small').forEach(btn => btn.classList.remove('active'));
     if (theme === 'underwater') {
         const btn = document.getElementById('btn-underwater');
@@ -705,6 +951,7 @@ function startGameWithDefault() {
 function startGame(theme) {
     initAudio();
     currentTheme = theme;
+    lives = 3;
     playerName = document.getElementById('player-name').value || 'Player';
     document.getElementById('player-display').innerText = playerName;
     document.body.className = 'theme-' + theme;
@@ -715,7 +962,6 @@ function startGame(theme) {
     gameState = 'PLAYING';
     level = 1;
     score = 0;
-    bullets = 3;
     totalCorrect = 0;
     currentStreak = 0;
     longestStreak = 0;
@@ -723,7 +969,7 @@ function startGame(theme) {
     particles = [];
     projectiles = [];
     backgrounds = [];
-    for(let i=0; i<10; i++) backgrounds.push(new BackgroundElement());
+    for(let i=0; i<15; i++) backgrounds.push(new BackgroundElement());
     player = new Player();
     updateUI();
     nextEquation();
@@ -741,7 +987,7 @@ function togglePause() {
 }
 
 function nextEquation() {
-    if (gameState !== 'PLAYING') return;
+    if (gameState !== 'PLAYING' && gameState !== 'TRANSITION') return;
     currentEquation = MathLogic.generateEquation(level);
     document.getElementById('equation-text').innerText = currentEquation.text;
     spawnSaucers();
@@ -767,7 +1013,7 @@ function updateUI() {
 
     const container = document.getElementById('lives-container');
     container.innerHTML = '';
-    for(let i=0; i<bullets; i++) {
+    for(let i=0; i<lives; i++) {
         const heart = document.createElement('div');
         heart.className = 'heart';
         container.appendChild(heart);
@@ -791,7 +1037,16 @@ function gameLoop(timestamp) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (gameState === 'PLAYING' || gameState === 'TRANSITION') {
+    if (gameState === 'START') {
+        backgrounds.forEach(bg => {
+            bg.update(deltaTime);
+            bg.draw();
+        });
+        const gh = getGroundHeight();
+        const gc = getComputedStyle(document.documentElement).getPropertyValue('--ground-color').trim();
+        ctx.fillStyle = gc || '#228B22';
+        ctx.fillRect(0, canvas.height - gh, canvas.width, gh);
+    } else if (gameState === 'PLAYING' || gameState === 'TRANSITION') {
         update(deltaTime);
         draw();
     } else if (gameState === 'PAUSED') {
@@ -805,17 +1060,19 @@ function update(dt) {
     backgrounds.forEach(bg => bg.update(dt));
     if (player) player.update(dt);
     saucers.forEach(saucer => saucer.update(dt));
+
+    for (let i = playerProjectiles.length - 1; i >= 0; i--) {
+        playerProjectiles[i].update(dt);
+        if (playerProjectiles[i].dead) playerProjectiles.splice(i, 1);
+    }
+
     for (let i = projectiles.length - 1; i >= 0; i--) {
         projectiles[i].update(dt);
-        if (projectiles[i].reached) {
-            projectiles.splice(i, 1);
-        }
+        if (projectiles[i].reached) projectiles.splice(i, 1);
     }
     for (let i = particles.length - 1; i >= 0; i--) {
         particles[i].update(dt);
-        if (particles[i].life <= 0) {
-            particles.splice(i, 1);
-        }
+        if (particles[i].life <= 0) particles.splice(i, 1);
     }
 }
 
@@ -823,11 +1080,12 @@ function draw() {
     backgrounds.forEach(bg => bg.draw());
     const groundColor = getComputedStyle(document.documentElement).getPropertyValue('--ground-color').trim();
     ctx.fillStyle = groundColor || '#228B22';
-    const groundHeight = window.innerWidth < 600 ? 80 : 100;
+    const groundHeight = getGroundHeight();
     ctx.fillRect(0, canvas.height - groundHeight, canvas.width, groundHeight);
 
     if (player) player.draw();
     saucers.forEach(saucer => saucer.draw());
+    playerProjectiles.forEach(p => p.draw());
     projectiles.forEach(p => p.draw());
     particles.forEach(p => p.draw());
 }

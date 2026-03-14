@@ -26,6 +26,7 @@ body, html {
     position: relative;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     background-color: var(--bg-color);
     transition: background-color 0.8s ease;
 }
@@ -95,20 +96,21 @@ canvas {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 100px;
+    height: auto;
     pointer-events: none;
     z-index: 10;
+    background: var(--ui-bg);
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
+    border-top: 4px solid var(--accent-color);
 }
 
 #hud-bottom-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--ui-bg);
-    height: 100%;
+    height: 100px;
     padding: 0 20px;
-    box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
-    border-top: 4px solid var(--accent-color);
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 .hud-group {
@@ -119,7 +121,8 @@ canvas {
 
 #hud-equation {
     flex-grow: 1;
-    justify-content: center;
+    justify-content: flex-start;
+    padding-left: 20px;
 }
 
 #equation-container {
@@ -138,23 +141,24 @@ canvas {
 }
 
 .heart {
-    width: 20px;
-    height: 20px;
+    width: 25px;
+    height: 25px;
     background: #ff4757;
     position: relative;
     transform: rotate(-45deg);
-    margin: 5px;
+    margin: 5px 10px;
+    box-shadow: 0 0 10px rgba(255, 71, 87, 0.4);
 }
 .heart:before, .heart:after {
     content: "";
-    width: 20px;
-    height: 20px;
+    width: 25px;
+    height: 25px;
     background: #ff4757;
     border-radius: 50%;
     position: absolute;
 }
-.heart:before { top: -10px; left: 0; }
-.heart:after { left: 10px; top: 0; }
+.heart:before { top: -12px; left: 0; }
+.heart:after { left: 12px; top: 0; }
 
 #hud-stats {
     flex-direction: column;
@@ -346,15 +350,15 @@ button:active {
 @media (max-width: 600px) {
     .bounce { font-size: 2.2rem; }
     #equation-container { font-size: 24px; padding: 8px 15px; }
-    #ui-layer { height: 80px; }
+    #hud-bottom-bar { height: 80px; }
     .stat-item { font-size: 1.2rem; }
     input[type="text"] { font-size: 1.2rem; width: 80%; }
     .level-up-msg { font-size: 3rem; }
     .hud-item { font-size: 0.9rem; }
-    .heart { width: 15px; height: 15px; margin: 3px; }
-    .heart:before, .heart:after { width: 15px; height: 15px; }
-    .heart:before { top: -8px; }
-    .heart:after { left: 8px; }
+    .heart { width: 18px; height: 18px; margin: 3px 6px; }
+    .heart:before, .heart:after { width: 18px; height: 18px; }
+    .heart:before { top: -9px; }
+    .heart:after { left: 9px; }
     #pause-btn { padding: 5px 10px; margin-left: 5px; font-size: 0.8rem; }
 }
 
